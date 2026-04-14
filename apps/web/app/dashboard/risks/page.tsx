@@ -1,16 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Table, Button, Tag, Avatar, Tooltip, message } from 'antd';
 import {
-  PlusOutlined,
-  WarningOutlined,
-  EyeOutlined,
-  EditOutlined,
-  CheckCircleOutlined,
-  ExclamationCircleOutlined,
-  DeleteOutlined,
-  SafetyOutlined,
+  Table, Button, Tag, Tooltip, Avatar, message,
+  Modal, Form, Input, Select, Row, Col, Space, Popconfirm, Descriptions, Divider,
+} from 'antd';
+import {
+  PlusOutlined, EditOutlined, EyeOutlined,
+  DeleteOutlined, WarningOutlined, ExclamationCircleOutlined, CheckCircleOutlined,
+  SafetyOutlined, CloseCircleOutlined,
 } from '@ant-design/icons';
 import { colors } from '@/lib/theme';
 import api from '@/lib/api';
@@ -18,84 +16,71 @@ import api from '@/lib/api';
 const AntdTable = Table as any;
 const AntdButton = Button as any;
 const AntdTag = Tag as any;
-const AntdAvatar = Avatar as any;
 const AntdTooltip = Tooltip as any;
+const AntdAvatar = Avatar as any;
+const AntdModal = Modal as any;
+const AntdForm = Form as any;
+const AntdInput = Input as any;
+const AntdSelect = Select as any;
+const AntdSpace = Space as any;
+const AntdPopconfirm = Popconfirm as any;
+const AntdDescriptions = Descriptions as any;
+const AntdDivider = Divider as any;
+const AntdTextArea = Input.TextArea as any;
 
-const levelConfig: Record<string, { bg: string; color: string; icon: any }> = {
-  'HIGH': { bg: 'rgba(255, 77, 79, 0.1)', color: colors.error, icon: ExclamationCircleOutlined },
-  'MEDIUM': { bg: 'rgba(250, 173, 20, 0.1)', color: colors.warning, icon: WarningOutlined },
-  'LOW': { bg: 'rgba(82, 196, 26, 0.1)', color: colors.success, icon: CheckCircleOutlined },
-  'CRITICAL': { bg: 'rgba(255, 77, 79, 0.15)', color: colors.error, icon: ExclamationCircleOutlined },
-  '高': { bg: 'rgba(255, 77, 79, 0.1)', color: colors.error, icon: ExclamationCircleOutlined },
-  '中': { bg: 'rgba(250, 173, 20, 0.1)', color: colors.warning, icon: WarningOutlined },
-  '低': { bg: 'rgba(82, 196, 26, 0.1)', color: colors.success, icon: CheckCircleOutlined },
+const levelMap: Record<string, string> = {
+  CRITICAL: '严重',
+  HIGH: '高',
+  MEDIUM: '中',
+  LOW: '低',
 };
 
-const defaultLevelConfig = { bg: 'rgba(0,0,0,0.04)', color: '#8c8c8c', icon: WarningOutlined };
-
-function getLevelConfig(level: string) {
-  return levelConfig[level] || defaultLevelConfig;
-}
-
-const statusConfig: Record<string, { bg: string; color: string }> = {
-  'MONITORING': { bg: 'rgba(24, 144, 255, 0.1)', color: colors.primary },
-  'HANDLING': { bg: 'rgba(250, 173, 20, 0.1)', color: colors.warning },
-  'RESOLVED': { bg: 'rgba(82, 196, 26, 0.1)', color: colors.success },
-  'CLOSED': { bg: 'rgba(0, 0, 0, 0.04)', color: colors.text.secondary },
-  '监控中': { bg: 'rgba(24, 144, 255, 0.1)', color: colors.primary },
-  '处理中': { bg: 'rgba(250, 173, 20, 0.1)', color: colors.warning },
-  '已处理': { bg: 'rgba(82, 196, 26, 0.1)', color: colors.success },
-  '已关闭': { bg: 'rgba(0, 0, 0, 0.04)', color: colors.text.secondary },
+const levelColors: Record<string, string> = {
+  CRITICAL: '#ff4d4f',
+  HIGH: colors.error,
+  MEDIUM: colors.warning,
+  LOW: colors.success,
 };
 
-const categoryIcons: Record<string, { bg: string; color: string }> = {
-  'PERSONNEL': { bg: 'rgba(114, 46, 209, 0.1)', color: '#722ed1' },
-  'TECHNICAL': { bg: 'rgba(24, 144, 255, 0.1)', color: colors.primary },
-  'MANAGEMENT': { bg: 'rgba(250, 173, 20, 0.1)', color: colors.warning },
-  'SECURITY': { bg: 'rgba(255, 77, 79, 0.1)', color: colors.error },
-  'COMPLIANCE': { bg: 'rgba(19, 194, 194, 0.1)', color: colors.info },
-  'FINANCIAL': { bg: 'rgba(82, 196, 26, 0.1)', color: colors.success },
-  '人员风险': { bg: 'rgba(114, 46, 209, 0.1)', color: '#722ed1' },
-  '技术风险': { bg: 'rgba(24, 144, 255, 0.1)', color: colors.primary },
-  '管理风险': { bg: 'rgba(250, 173, 20, 0.1)', color: colors.warning },
-  '安全风险': { bg: 'rgba(255, 77, 79, 0.1)', color: colors.error },
-  '合规风险': { bg: 'rgba(19, 194, 194, 0.1)', color: colors.info },
-  '财务风险': { bg: 'rgba(82, 196, 26, 0.1)', color: colors.success },
+const statusMap: Record<string, string> = {
+  MONITORING: '监控中',
+  HANDLING: '处理中',
+  RESOLVED: '已解决',
+  CLOSED: '已关闭',
 };
 
-const defaultColor = { bg: 'rgba(0,0,0,0.04)', color: '#8c8c8c' };
-function getColor(map: Record<string, { bg: string; color: string }>, key: string) {
-  return map[key] || defaultColor;
-}
+const statusColors: Record<string, string> = {
+  MONITORING: colors.primary,
+  HANDLING: colors.warning,
+  RESOLVED: colors.success,
+  CLOSED: '#8c8c8c',
+};
 
 export default function RisksPage() {
   const [risks, setRisks] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
+  const [stats, setStats] = useState<any>(null);
+  const [riskTypes, setRiskTypes] = useState<any[]>([]);
+  const [typeFilter, setTypeFilter] = useState<string>('');
+  const [levelFilter, setLevelFilter] = useState<string>('');
+
+  const [modalVisible, setModalVisible] = useState(false);
+  const [editingRisk, setEditingRisk] = useState<any>(null);
+  const [form] = AntdForm.useForm();
+
+  const [detailVisible, setDetailVisible] = useState(false);
+  const [detailData, setDetailData] = useState<any>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const res = await api.risks.list({ page, limit: 10 });
-      const mappedData = res.data.map((risk: any, index: number) => ({
-        key: risk.id || String(index),
-        id: risk.id,
-        title: risk.name,
-        description: risk.description,
-        category: risk.typeId || risk.category || '-',
-        level: risk.level || '中',
-        impact: risk.impact || '-',
-        triggerConditions: risk.triggerConditions || '-',
-        dispositionMeasures: risk.dispositionMeasures || '-',
-        status: risk.status || '监控中',
-        discoverDate: risk.discoverDate || risk.createdAt?.split('T')[0] || '-',
-        owner: risk.owner || '-',
-        ownerInitial: (risk.owner || 'A').charAt(0),
-        partner: risk.partner?.name || '-',
-      }));
-      setRisks(mappedData);
-      setTotal(res.meta?.total || res.data.length);
+      const res = await api.risks.list({ page, limit: pageSize, typeId: typeFilter, level: levelFilter });
+      setRisks(res.data.map((r: any) => ({ ...r, key: r.id })));
+      setTotal(res.meta.total);
     } catch (err: any) {
       message.error(err.message || '获取风险列表失败');
     } finally {
@@ -103,9 +88,97 @@ export default function RisksPage() {
     }
   };
 
-  useEffect(() => {
-    fetchData();
-  }, [page]);
+  const fetchStats = async () => {
+    try {
+      const res = await api.risks.getStats();
+      setStats(res);
+    } catch (e: any) {
+      console.error('Failed to fetch stats:', e);
+    }
+  };
+
+  const fetchRiskTypes = async () => {
+    try {
+      const res = await api.risks.listTypes();
+      setRiskTypes(res || []);
+    } catch (e: any) {
+      console.error('Failed to fetch risk types:', e);
+    }
+  };
+
+  useEffect(() => { fetchData(); }, [page, pageSize, typeFilter, levelFilter]);
+  useEffect(() => { fetchStats(); fetchRiskTypes(); }, []);
+
+  const handleAdd = () => {
+    setEditingRisk(null);
+    form.resetFields();
+    form.setFieldsValue({ level: 'MEDIUM', status: 'MONITORING' });
+    setModalVisible(true);
+  };
+
+  const handleEdit = (record: any) => {
+    setEditingRisk(record);
+    form.setFieldsValue({
+      name: record.name,
+      description: record.description,
+      typeId: record.typeId,
+      level: record.level,
+      impact: record.impact,
+      triggerConditions: record.triggerConditions,
+      dispositionMeasures: record.dispositionMeasures,
+      status: record.status,
+    });
+    setModalVisible(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await api.risks.remove(id);
+      message.success('删除成功');
+      fetchData();
+      fetchStats();
+    } catch (e: any) {
+      message.error(e.message || '删除失败');
+    }
+  };
+
+  const handleSubmit = async () => {
+    try {
+      const values = await form.validateFields();
+      if (editingRisk) {
+        await api.risks.update(editingRisk.id, values);
+        message.success('更新成功');
+      } else {
+        await api.risks.create(values);
+        message.success('创建成功');
+      }
+      setModalVisible(false);
+      fetchData();
+      fetchStats();
+    } catch (e: any) {
+      if (e.errorFields) return;
+      message.error(e.message || '操作失败');
+    }
+  };
+
+  const handleViewDetail = async (record: any) => {
+    setDetailLoading(true);
+    setDetailVisible(true);
+    try {
+      const res = await api.risks.get(record.id);
+      setDetailData(res);
+    } catch (e: any) {
+      message.error(e.message || '获取详情失败');
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  const safeIndex = (key: string | number, i: number): number => {
+    const n = parseInt(String(key), 10);
+    return isNaN(n) ? i % 6 : (n + i) % 6;
+  };
+
   const columns = [
     {
       title: '风险信息',
@@ -113,33 +186,16 @@ export default function RisksPage() {
       width: 320,
       render: (_: any, record: any) => (
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-            <div
-              style={{
-                padding: '2px 8px',
-                borderRadius: 6,
-                background: categoryIcons[record.category]?.bg || 'rgba(0,0,0,0.04)',
-                color: categoryIcons[record.category]?.color || colors.text.secondary,
-                fontSize: 12,
-                fontWeight: 500,
-              }}
-            >
-              {record.category}
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+            <Tag style={{ background: `${levelColors[record.level]}15`, color: levelColors[record.level], border: 'none', fontSize: 11 }}>
+              {levelMap[record.level] || record.level}
+            </Tag>
+            <Tag style={{ background: colors.background.light, color: colors.text.secondary, border: 'none', fontSize: 11 }}>
+              {record.riskType?.name || '-'}
+            </Tag>
           </div>
-          <div style={{ fontWeight: 600, color: colors.text.primary, marginBottom: 4 }}>
-            {record.title}
-          </div>
-          <div
-            style={{
-              fontSize: 13,
-              color: colors.text.secondary,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              maxWidth: 300,
-            }}
-          >
+          <div style={{ fontWeight: 600, color: colors.text.primary, marginBottom: 2 }}>{record.name}</div>
+          <div style={{ fontSize: 12, color: colors.text.secondary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 300 }}>
             {record.description}
           </div>
         </div>
@@ -148,112 +204,53 @@ export default function RisksPage() {
     {
       title: '影响',
       key: 'impact',
-      width: 200,
+      width: 160,
       render: (_: any, record: any) => (
-        <AntdTooltip title={record.impact}>
-          <div
-            style={{
-              fontSize: 13,
-              color: colors.text.secondary,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              maxWidth: 180,
-            }}
-          >
-            {record.impact}
-          </div>
-        </AntdTooltip>
+        <Tooltip title={record.impact}>
+          <span style={{ fontSize: 13, color: colors.text.secondary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'inline-block', maxWidth: 150 }}>
+            {record.impact || '-'}
+          </span>
+        </Tooltip>
       ),
     },
     {
       title: '等级',
       key: 'level',
-      width: 100,
-      render: (_: any, record: any) => {
-        const config = getLevelConfig(record.level);
-        const Icon = config.icon;
-        return (
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '4px 12px',
-              borderRadius: 8,
-              background: config.bg,
-              color: config.color,
-              fontWeight: 600,
-            }}
-          >
-            <Icon style={{ fontSize: 14 }} />
-            {record.level}
-          </div>
-        );
-      },
+      width: 80,
+      render: (_: any, record: any) => (
+        <Tag style={{ background: `${levelColors[record.level]}15`, color: levelColors[record.level], border: 'none', borderRadius: 4 }}>
+          {levelMap[record.level] || record.level}
+        </Tag>
+      ),
     },
     {
       title: '状态',
       key: 'status',
-      width: 100,
+      width: 90,
       render: (_: any, record: any) => (
-        <AntdTag
-          style={{
-            borderRadius: 6,
-            background: getColor(statusConfig, record.status).bg,
-            color: getColor(statusConfig, record.status).color,
-            border: 'none',
-            fontWeight: 500,
-          }}
-        >
-          {record.status}
-        </AntdTag>
-      ),
-    },
-    {
-      title: '负责人',
-      key: 'owner',
-      width: 110,
-      render: (_: any, record: any) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <AntdAvatar
-            size={28}
-            style={{
-              background: colors.cardColors[(parseInt(record.key) || 0) % 6].gradient,
-              fontSize: 11,
-            }}
-          >
-            {record.ownerInitial}
-          </AntdAvatar>
-          <span style={{ fontSize: 13 }}>{record.owner}</span>
-        </div>
-      ),
-    },
-    {
-      title: '发现日期',
-      key: 'discoverDate',
-      width: 110,
-      render: (_: any, record: any) => (
-        <span style={{ color: colors.text.secondary, fontSize: 13 }}>{record.discoverDate}</span>
+        <Tag style={{ background: `${statusColors[record.status]}15`, color: statusColors[record.status], border: 'none', borderRadius: 4 }}>
+          {statusMap[record.status] || record.status}
+        </Tag>
       ),
     },
     {
       title: '操作',
       key: 'action',
-      width: 100,
-      render: () => (
-        <div style={{ display: 'flex', gap: 4 }}>
-          <AntdButton type="text" icon={<EyeOutlined />} size="small" onClick={() => message.info('功能开发中')} />
-          <AntdButton type="text" icon={<EditOutlined />} size="small" onClick={() => message.info('功能开发中')} />
-          <AntdButton type="text" icon={<DeleteOutlined />} size="small" danger onClick={() => message.info('功能开发中')} />
-        </div>
+      width: 120,
+      render: (_: any, record: any) => (
+        <AntdSpace size={2}>
+          <AntdButton type="text" icon={<EyeOutlined />} size="small" onClick={() => handleViewDetail(record)} />
+          <AntdButton type="text" icon={<EditOutlined />} size="small" onClick={() => handleEdit(record)} />
+          <AntdPopconfirm title="确定删除该风险？" onConfirm={() => handleDelete(record.id)}>
+            <AntdButton type="text" icon={<DeleteOutlined />} size="small" danger />
+          </AntdPopconfirm>
+        </AntdSpace>
       ),
     },
   ];
 
   return (
     <div>
-      {/* Page Header */}
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: 28, fontWeight: 600, color: colors.text.primary, margin: 0, marginBottom: 4 }}>
           风险库管理
@@ -263,106 +260,114 @@ export default function RisksPage() {
         </p>
       </div>
 
-      {/* Risk Level Summary */}
-      <div style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
-        {[
-          { label: '高风险', value: risks.filter(r => r.level === '高').length, color: colors.error, icon: ExclamationCircleOutlined },
-          { label: '中风险', value: risks.filter(r => r.level === '中').length, color: colors.warning, icon: WarningOutlined },
-          { label: '低风险', value: risks.filter(r => r.level === '低').length, color: colors.success, icon: CheckCircleOutlined },
-          { label: '已处理', value: risks.filter(r => r.status === '已处理').length, color: colors.primary, icon: SafetyOutlined },
-        ].map((stat, i) => (
-          <div
-            key={i}
-            style={{
-              flex: 1,
-              padding: 16,
-              background: '#fff',
-              borderRadius: 12,
-              boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-            }}
-          >
-            <div
-              style={{
-                width: 48,
-                height: 48,
-                borderRadius: 12,
-                background: `${stat.color}15`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: stat.color,
-                fontSize: 20,
-              }}
-            >
-              <stat.icon />
-            </div>
-            <div>
-              <div style={{ fontSize: 24, fontWeight: 700, color: colors.text.primary, lineHeight: 1 }}>
-                {stat.value}
+      {stats && (
+        <div style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
+          {[
+            { label: '高风险', value: stats.byLevel?.find((s: any) => s.level === 'HIGH')?.count || 0, icon: ExclamationCircleOutlined, color: colors.error },
+            { label: '中风险', value: stats.byLevel?.find((s: any) => s.level === 'MEDIUM')?.count || 0, icon: WarningOutlined, color: colors.warning },
+            { label: '低风险', value: stats.byLevel?.find((s: any) => s.level === 'LOW')?.count || 0, icon: CheckCircleOutlined, color: colors.success },
+            { label: '风险总数', value: stats.total || 0, icon: SafetyOutlined, color: colors.primary },
+          ].map((stat, i) => (
+            <div key={i} style={{ flex: 1, padding: 16, background: '#fff', borderRadius: 12, boxShadow: '0 2px 12px rgba(0,0,0,0.04)', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 48, height: 48, borderRadius: 12, background: `${stat.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, fontSize: 20 }}>
+                <stat.icon />
               </div>
-              <div style={{ fontSize: 13, color: colors.text.secondary, marginTop: 2 }}>
-                {stat.label}
+              <div>
+                <div style={{ fontSize: 24, fontWeight: 700, color: colors.text.primary, lineHeight: 1 }}>{stat.value}</div>
+                <div style={{ fontSize: 13, color: colors.text.secondary, marginTop: 2 }}>{stat.label}</div>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
-      {/* Table Card */}
-      <div
-        style={{
-          background: '#fff',
-          borderRadius: 16,
-          boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
-          overflow: 'hidden',
-        }}
-      >
-        <div
-          style={{
-            padding: '20px 24px',
-            borderBottom: `1px solid ${colors.border.light}`,
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}
-        >
-          <div style={{ display: 'flex', gap: 8 }}>
-            <AntdButton type="primary" style={{ borderRadius: 10 }}>全部</AntdButton>
-            <AntdButton type="text" style={{ borderRadius: 10 }} onClick={() => message.info('功能开发中')}>监控中</AntdButton>
-            <AntdButton type="text" style={{ borderRadius: 10 }} onClick={() => message.info('功能开发中')}>处理中</AntdButton>
-            <AntdButton type="text" style={{ borderRadius: 10 }} onClick={() => message.info('功能开发中')}>已处理</AntdButton>
+      <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 12px rgba(0,0,0,0.04)', overflow: 'hidden' }}>
+        <div style={{ padding: '16px 24px', borderBottom: `1px solid ${colors.border.light}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <AntdSelect placeholder="风险类型" style={{ width: 140 }} allowClear value={typeFilter || undefined} onChange={v => { setTypeFilter(v || ''); setPage(1); }}>
+              {riskTypes.map(t => <AntdSelect.Option key={t.id} value={t.id}>{t.name}</AntdSelect.Option>)}
+            </AntdSelect>
+            <AntdSelect placeholder="风险等级" style={{ width: 100 }} allowClear value={levelFilter || undefined} onChange={v => { setLevelFilter(v || ''); setPage(1); }}>
+              {Object.entries(levelMap).map(([k, v]) => <AntdSelect.Option key={k} value={k}>{v}</AntdSelect.Option>)}
+            </AntdSelect>
           </div>
-          <AntdButton
-            type="primary"
-            icon={<PlusOutlined />}
-            style={{
-              borderRadius: 10,
-              background: `linear-gradient(135deg, ${colors.primary} 0%, #764ba2 100%)`,
-              border: 'none',
-            }}
-            onClick={() => message.info('功能开发中')}
-          >
+          <AntdButton type="primary" icon={<PlusOutlined />} style={{ borderRadius: 8, background: `linear-gradient(135deg, ${colors.primary} 0%, #764ba2 100%)`, border: 'none' }} onClick={handleAdd}>
             新增风险
           </AntdButton>
         </div>
 
-        <AntdTable
-          columns={columns}
-          dataSource={risks}
-          loading={loading}
-          pagination={{
-            current: page,
-            pageSize: 10,
-            total,
-            showSizeChanger: true,
-            showTotal: (total: number) => `共 ${total} 条`,
-            onChange: (p) => setPage(p),
-          }}
-        />
+        <div style={{ padding: '0 24px' }}>
+          <AntdTable columns={columns} dataSource={risks} loading={loading} pagination={{
+            current: page, pageSize, total,
+            showSizeChanger: true, showTotal: (t: number) => `共 ${t} 条`,
+            onChange: (p, ps) => { setPage(p); setPageSize(ps || 10); },
+          }} />
+        </div>
       </div>
+
+      <AntdModal title={editingRisk ? '编辑风险' : '新增风险'} open={modalVisible} onOk={handleSubmit} onCancel={() => setModalVisible(false)} width={560} okText="确定" cancelText="取消">
+        <AntdForm form={form} layout="vertical" style={{ marginTop: 16 }}>
+          <AntdForm.Item name="name" label="风险名称" rules={[{ required: true, message: '请输入风险名称' }]}>
+            <AntdInput placeholder="请输入风险名称" />
+          </AntdForm.Item>
+          <Row gutter={12}>
+            <Col span={12}>
+              <AntdForm.Item name="typeId" label="风险类型" rules={[{ required: true, message: '请选择风险类型' }]}>
+                <AntdSelect placeholder="选择风险类型">
+                  {riskTypes.map(t => <AntdSelect.Option key={t.id} value={t.id}>{t.name}</AntdSelect.Option>)}
+                </AntdSelect>
+              </AntdForm.Item>
+            </Col>
+            <Col span={12}>
+              <AntdForm.Item name="level" label="风险等级">
+                <AntdSelect>{Object.entries(levelMap).map(([k, v]) => <AntdSelect.Option key={k} value={k}>{v}</AntdSelect.Option>)}</AntdSelect>
+              </AntdForm.Item>
+            </Col>
+          </Row>
+          <AntdForm.Item name="impact" label="影响描述">
+            <AntdTextArea rows={2} placeholder="请输入影响描述" />
+          </AntdForm.Item>
+          <AntdForm.Item name="triggerConditions" label="触发条件">
+            <AntdTextArea rows={2} placeholder="请输入触发条件" />
+          </AntdForm.Item>
+          <AntdForm.Item name="dispositionMeasures" label="处置措施">
+            <AntdTextArea rows={2} placeholder="请输入处置措施" />
+          </AntdForm.Item>
+          {editingRisk && (
+            <AntdForm.Item name="status" label="状态">
+              <AntdSelect>{Object.entries(statusMap).map(([k, v]) => <AntdSelect.Option key={k} value={k}>{v}</AntdSelect.Option>)}</AntdSelect>
+            </AntdForm.Item>
+          )}
+        </AntdForm>
+      </AntdModal>
+
+      <AntdDrawer title="风险详情" placement="right" width={560} open={detailVisible} onClose={() => setDetailVisible(false)}>
+        {detailLoading ? <div style={{ textAlign: 'center', padding: 40 }}>加载中...</div> : detailData ? (
+          <div>
+            <AntdDescriptions column={2} bordered size="small">
+              <AntdDescriptions.Item label="风险名称" span={2}><span style={{ fontWeight: 600 }}>{detailData.name}</span></AntdDescriptions.Item>
+              <AntdDescriptions.Item label="风险类型" span={1}>{detailData.riskType?.name || '-'}</AntdDescriptions.Item>
+              <AntdDescriptions.Item label="风险等级" span={1}>
+                <Tag style={{ background: `${levelColors[detailData.level]}15`, color: levelColors[detailData.level], border: 'none' }}>
+                  {levelMap[detailData.level] || detailData.level}
+                </Tag>
+              </AntdDescriptions.Item>
+              <AntdDescriptions.Item label="状态" span={1}>
+                <Tag style={{ background: `${statusColors[detailData.status]}15`, color: statusColors[detailData.status], border: 'none' }}>
+                  {statusMap[detailData.status] || detailData.status}
+                </Tag>
+              </AntdDescriptions.Item>
+              <AntdDescriptions.Item label="影响描述" span={2}>{detailData.impact || '-'}</AntdDescriptions.Item>
+              <AntdDescriptions.Item label="触发条件" span={2}>{detailData.triggerConditions || '-'}</AntdDescriptions.Item>
+              <AntdDescriptions.Item label="处置措施" span={2}>{detailData.dispositionMeasures || '-'}</AntdDescriptions.Item>
+              <AntdDescriptions.Item label="描述" span={2}>{detailData.description || '-'}</AntdDescriptions.Item>
+            </AntdDescriptions>
+            <div style={{ marginTop: 24 }}>
+              <AntdButton type="primary" icon={<EditOutlined />} onClick={() => { setDetailVisible(false); handleEdit(detailData); }}>编辑风险</AntdButton>
+            </div>
+          </div>
+        ) : null}
+      </AntdDrawer>
     </div>
   );
 }
