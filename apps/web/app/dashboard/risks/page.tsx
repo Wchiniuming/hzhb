@@ -22,12 +22,19 @@ const AntdAvatar = Avatar as any;
 const AntdTooltip = Tooltip as any;
 
 const levelConfig: Record<string, { bg: string; color: string; icon: any }> = {
+  'HIGH': { bg: 'rgba(255, 77, 79, 0.1)', color: colors.error, icon: ExclamationCircleOutlined },
+  'MEDIUM': { bg: 'rgba(250, 173, 20, 0.1)', color: colors.warning, icon: WarningOutlined },
+  'LOW': { bg: 'rgba(82, 196, 26, 0.1)', color: colors.success, icon: CheckCircleOutlined },
   '高': { bg: 'rgba(255, 77, 79, 0.1)', color: colors.error, icon: ExclamationCircleOutlined },
   '中': { bg: 'rgba(250, 173, 20, 0.1)', color: colors.warning, icon: WarningOutlined },
   '低': { bg: 'rgba(82, 196, 26, 0.1)', color: colors.success, icon: CheckCircleOutlined },
 };
 
 const statusConfig: Record<string, { bg: string; color: string }> = {
+  'MONITORING': { bg: 'rgba(24, 144, 255, 0.1)', color: colors.primary },
+  'HANDLING': { bg: 'rgba(250, 173, 20, 0.1)', color: colors.warning },
+  'RESOLVED': { bg: 'rgba(82, 196, 26, 0.1)', color: colors.success },
+  'CLOSED': { bg: 'rgba(0, 0, 0, 0.04)', color: colors.text.secondary },
   '监控中': { bg: 'rgba(24, 144, 255, 0.1)', color: colors.primary },
   '处理中': { bg: 'rgba(250, 173, 20, 0.1)', color: colors.warning },
   '已处理': { bg: 'rgba(82, 196, 26, 0.1)', color: colors.success },
@@ -35,6 +42,12 @@ const statusConfig: Record<string, { bg: string; color: string }> = {
 };
 
 const categoryIcons: Record<string, { bg: string; color: string }> = {
+  'PERSONNEL': { bg: 'rgba(114, 46, 209, 0.1)', color: '#722ed1' },
+  'TECHNICAL': { bg: 'rgba(24, 144, 255, 0.1)', color: colors.primary },
+  'MANAGEMENT': { bg: 'rgba(250, 173, 20, 0.1)', color: colors.warning },
+  'SECURITY': { bg: 'rgba(255, 77, 79, 0.1)', color: colors.error },
+  'COMPLIANCE': { bg: 'rgba(19, 194, 194, 0.1)', color: colors.info },
+  'FINANCIAL': { bg: 'rgba(82, 196, 26, 0.1)', color: colors.success },
   '人员风险': { bg: 'rgba(114, 46, 209, 0.1)', color: '#722ed1' },
   '技术风险': { bg: 'rgba(24, 144, 255, 0.1)', color: colors.primary },
   '管理风险': { bg: 'rgba(250, 173, 20, 0.1)', color: colors.warning },
@@ -42,6 +55,11 @@ const categoryIcons: Record<string, { bg: string; color: string }> = {
   '合规风险': { bg: 'rgba(19, 194, 194, 0.1)', color: colors.info },
   '财务风险': { bg: 'rgba(82, 196, 26, 0.1)', color: colors.success },
 };
+
+const defaultColor = { bg: 'rgba(0,0,0,0.04)', color: '#8c8c8c' };
+function getColor(map: Record<string, { bg: string; color: string }>, key: string) {
+  return map[key] || defaultColor;
+}
 
 export default function RisksPage() {
   const [risks, setRisks] = useState<any[]>([]);
@@ -174,8 +192,8 @@ export default function RisksPage() {
         <AntdTag
           style={{
             borderRadius: 6,
-            background: statusConfig[record.status].bg,
-            color: statusConfig[record.status].color,
+            background: getColor(statusConfig, record.status).bg,
+            color: getColor(statusConfig, record.status).color,
             border: 'none',
             fontWeight: 500,
           }}

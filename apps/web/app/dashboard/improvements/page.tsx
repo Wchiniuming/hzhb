@@ -22,22 +22,36 @@ const AntdProgress = Progress as any;
 const AntdAvatar = Avatar as any;
 
 const priorityColors: Record<string, { bg: string; color: string }> = {
+  'HIGH': { bg: 'rgba(255, 77, 79, 0.1)', color: colors.error },
+  'MEDIUM': { bg: 'rgba(250, 173, 20, 0.1)', color: colors.warning },
+  'LOW': { bg: 'rgba(82, 196, 26, 0.1)', color: colors.success },
   '高': { bg: 'rgba(255, 77, 79, 0.1)', color: colors.error },
   '中': { bg: 'rgba(250, 173, 20, 0.1)', color: colors.warning },
   '低': { bg: 'rgba(82, 196, 26, 0.1)', color: colors.success },
 };
 
 const statusConfig: Record<string, { bg: string; color: string; icon: any }> = {
+  'PENDING': { bg: 'rgba(250, 173, 20, 0.1)', color: colors.warning, icon: FieldTimeOutlined },
+  'IN_PROGRESS': { bg: 'rgba(24, 144, 255, 0.1)', color: colors.primary, icon: ClockCircleOutlined },
+  'COMPLETED': { bg: 'rgba(82, 196, 26, 0.1)', color: colors.success, icon: CheckCircleOutlined },
   '待验收': { bg: 'rgba(250, 173, 20, 0.1)', color: colors.warning, icon: FieldTimeOutlined },
   '进行中': { bg: 'rgba(24, 144, 255, 0.1)', color: colors.primary, icon: ClockCircleOutlined },
   '已完成': { bg: 'rgba(82, 196, 26, 0.1)', color: colors.success, icon: CheckCircleOutlined },
 };
 
 const originColors: Record<string, { bg: string; color: string }> = {
+  'ASSESSMENT': { bg: 'rgba(114, 46, 209, 0.1)', color: '#722ed1' },
+  'TASK_DELAY': { bg: 'rgba(250, 173, 20, 0.1)', color: colors.warning },
+  'RISK': { bg: 'rgba(255, 77, 79, 0.1)', color: colors.error },
   '评估触发': { bg: 'rgba(114, 46, 209, 0.1)', color: '#722ed1' },
   '任务延期': { bg: 'rgba(250, 173, 20, 0.1)', color: colors.warning },
   '风险触发': { bg: 'rgba(255, 77, 79, 0.1)', color: colors.error },
 };
+
+const defaultColor = { bg: 'rgba(0,0,0,0.04)', color: '#8c8c8c' };
+function getColor(map: Record<string, { bg: string; color: string }>, key: string) {
+  return map[key] || defaultColor;
+}
 
 export default function ImprovementsPage() {
   const [improvements, setImprovements] = useState<any[]>([]);
@@ -171,8 +185,8 @@ export default function ImprovementsPage() {
         <AntdTag
           style={{
             borderRadius: 6,
-            background: priorityColors[record.priority].bg,
-            color: priorityColors[record.priority].color,
+            background: getColor(priorityColors, record.priority).bg,
+            color: getColor(priorityColors, record.priority).color,
             border: 'none',
             fontWeight: 500,
           }}

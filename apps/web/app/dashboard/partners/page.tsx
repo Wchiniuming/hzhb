@@ -21,10 +21,18 @@ const AntdTag = Tag as any;
 const AntdProgress = Progress as any;
 
 const levelColors: Record<string, { bg: string; color: string }> = {
+  'A': { bg: 'rgba(82, 196, 26, 0.1)', color: colors.success },
+  'B': { bg: 'rgba(24, 144, 255, 0.1)', color: colors.primary },
+  'C': { bg: 'rgba(250, 173, 20, 0.1)', color: colors.warning },
   'A级': { bg: 'rgba(82, 196, 26, 0.1)', color: colors.success },
   'B级': { bg: 'rgba(24, 144, 255, 0.1)', color: colors.primary },
   'C级': { bg: 'rgba(250, 173, 20, 0.1)', color: colors.warning },
 };
+
+const defaultColor = { bg: 'rgba(0,0,0,0.04)', color: '#8c8c8c' };
+function getColor(map: Record<string, { bg: string; color: string }>, key: string) {
+  return map[key] || defaultColor;
+}
 
 export default function PartnersPage() {
   const [partners, setPartners] = useState<any[]>([]);
@@ -157,8 +165,8 @@ export default function PartnersPage() {
         <AntdTag
           style={{
             borderRadius: 6,
-            background: levelColors[record.level].bg,
-            color: levelColors[record.level].color,
+            background: getColor(levelColors, record.level).bg,
+            color: getColor(levelColors, record.level).color,
             border: 'none',
             fontWeight: 600,
             fontSize: 13,

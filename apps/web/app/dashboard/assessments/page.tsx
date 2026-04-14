@@ -20,6 +20,10 @@ const AntdProgress = Progress as any;
 const AntdTooltip = Tooltip as any;
 
 const levelColors: Record<string, { bg: string; color: string }> = {
+  'A': { bg: 'rgba(82, 196, 26, 0.1)', color: colors.success },
+  'B': { bg: 'rgba(24, 144, 255, 0.1)', color: colors.primary },
+  'C': { bg: 'rgba(250, 173, 20, 0.1)', color: colors.warning },
+  'D': { bg: 'rgba(255, 77, 79, 0.1)', color: colors.error },
   'A级': { bg: 'rgba(82, 196, 26, 0.1)', color: colors.success },
   'B级': { bg: 'rgba(24, 144, 255, 0.1)', color: colors.primary },
   'C级': { bg: 'rgba(250, 173, 20, 0.1)', color: colors.warning },
@@ -27,9 +31,16 @@ const levelColors: Record<string, { bg: string; color: string }> = {
 };
 
 const statusColors: Record<string, { bg: string; color: string; icon: any }> = {
+  'COMPLETED': { bg: 'rgba(82, 196, 26, 0.1)', color: colors.success, icon: CheckCircleOutlined },
+  'IN_PROGRESS': { bg: 'rgba(24, 144, 255, 0.1)', color: colors.primary, icon: ClockCircleOutlined },
   '已完成': { bg: 'rgba(82, 196, 26, 0.1)', color: colors.success, icon: CheckCircleOutlined },
   '进行中': { bg: 'rgba(24, 144, 255, 0.1)', color: colors.primary, icon: ClockCircleOutlined },
 };
+
+const defaultColor = { bg: 'rgba(0,0,0,0.04)', color: '#8c8c8c' };
+function getColor(map: Record<string, { bg: string; color: string }>, key: string) {
+  return map[key] || defaultColor;
+}
 
 export default function AssessmentsPage() {
   const [assessments, setAssessments] = useState<any[]>([]);
@@ -169,8 +180,8 @@ export default function AssessmentsPage() {
         <AntdTag
           style={{
             borderRadius: 6,
-            background: levelColors[record.level].bg,
-            color: levelColors[record.level].color,
+            background: getColor(levelColors, record.level).bg,
+            color: getColor(levelColors, record.level).color,
             border: 'none',
             fontWeight: 600,
           }}
@@ -192,14 +203,14 @@ export default function AssessmentsPage() {
             gap: 6,
             padding: '4px 10px',
             borderRadius: 6,
-            background: statusColors[record.status].bg,
-            color: statusColors[record.status].color,
+            background: getColor(statusColors, record.status).bg,
+            color: getColor(statusColors, record.status).color,
             fontSize: 13,
             fontWeight: 500,
           }}
         >
           {(() => {
-            const Icon = statusColors[record.status].icon;
+            const Icon = statusColors[record.status]?.icon || CheckCircleOutlined;
             return <Icon style={{ fontSize: 12 }} />;
           })()}
           {record.status}
