@@ -1,0 +1,438 @@
+// 合作伙伴支撑能力全景管理平台 Prisma Schema - SQLite Version
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== SYSTEM MODELS ====================
+model User {
+  id           String   @id @default(uuid())
+  username     String   @unique
+  passwordHash String
+  name         String?
+  email        String?
+  phone        String?
+  roleId       String
+  enabled      Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  role Role @relation(fields: [roleId], references: [id])
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  name        String   @unique  // SYSTEM_ADMIN, BUSINESS_ADMIN, AUDITOR, PARTNER_ADMIN, DEVELOPER, MANAGEMENT
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  permissions RolePermission[]
+  users       User[]
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  module      String
+  action      String
+  description String?
+  createdAt   DateTime @default(now())
+
+  roles RolePermission[]
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+  createdAt    DateTime @default(now())
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+}
+
+model Partner {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  contactInfo String?  // JSON stored as string for SQLite
+  status      String   @default("ACTIVE")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model LoginLog {
+  id        String   @id @default(uuid())
+  userId    String
+  loginTime DateTime @default(now())
+  ip        String?
+  success   Boolean  @default(true)
+}
+
+// ==================== DEVELOPER MODELS ====================
+model Developer {
+  id        String   @id @default(uuid())
+  partnerId String
+  name      String
+  gender    String?
+  age       Int?
+  contact   String?  // JSON stored as string for SQLite
+  status    String   @default("PENDING")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  skills       DeveloperSkill[]
+  experiences  DeveloperExperience[]
+  certificates Certificate[]
+  approvals    DeveloperApproval[]
+}
+
+model SkillTag {
+  id          String  @id @default(uuid())
+  name        String  @unique
+  parentId    String?
+  description String?
+
+  developers DeveloperSkill[]
+}
+
+model DeveloperSkill {
+  developerId String
+  skillTagId  String
+  proficiency String @default("INTERMEDIATE")  // BEGINNER, INTERMEDIATE, ADVANCED, EXPERT
+  developer   Developer @relation(fields: [developerId], references: [id])
+  skillTag    SkillTag  @relation(fields: [skillTagId], references: [id])
+
+  @@id([developerId, skillTagId])
+}
+
+model DeveloperExperience {
+  id          String    @id @default(uuid())
+  developerId String
+  projectName String
+  role        String?
+  startDate   DateTime
+  endDate     DateTime?
+  description String?
+  developer   Developer @relation(fields: [developerId], references: [id])
+}
+
+model Certificate {
+  id           String    @id @default(uuid())
+  developerId  String
+  name         String
+  issuingBody  String?
+  issueDate    DateTime
+  expireDate   DateTime?
+  attachmentId String?
+  developer    Developer @relation(fields: [developerId], references: [id])
+}
+
+model DeveloperApproval {
+  id          String    @id @default(uuid())
+  developerId String
+  status      String    @default("DRAFT")  // DRAFT, SUBMITTED, UNDER_REVIEW, APPROVED, REJECTED, REVISION_REQUIRED
+  submittedBy String?
+  approvedBy  String?
+  approvedAt  DateTime?
+  comments    String?
+  createdAt   DateTime  @default(now())
+  developer   Developer @relation(fields: [developerId], references: [id])
+}
+
+// ==================== TASK MODELS ====================
+model Task {
+  id               String   @id @default(uuid())
+  name             String
+  description      String?
+  type             String
+  deliveryStandard String?
+  startDate        DateTime
+  endDate          DateTime
+  priority         String   @default("MEDIUM")  // LOW, MEDIUM, HIGH, URGENT
+  budget           Float?
+  status           String   @default("NOT_STARTED")  // NOT_STARTED, IN_PROGRESS, COMPLETED, DELAYED, CANCELLED, ACCEPTED
+  partnerId        String
+  createdBy        String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  assignments   TaskAssignment[]
+  progresses    TaskProgress[]
+  delayRequests TaskDelayRequest[]
+  deliverables  TaskDeliverable[]
+  acceptances   TaskAcceptance[]
+  approvals     TaskApproval[]
+}
+
+model TaskAssignment {
+  taskId           String
+  developerId      String
+  role             String?
+  responsibilities String?
+  deliveryNode     DateTime?
+  task             Task      @relation(fields: [taskId], references: [id])
+
+  @@id([taskId, developerId])
+}
+
+model TaskProgress {
+  id          String   @id @default(uuid())
+  taskId      String
+  developerId String
+  status      String
+  details     String?
+  updateTime  DateTime @default(now())
+  task        Task     @relation(fields: [taskId], references: [id])
+}
+
+model TaskDelayRequest {
+  id           String    @id @default(uuid())
+  taskId       String
+  reason       String
+  newEndDate   DateTime
+  status       String    @default("DRAFT")  // DRAFT, SUBMITTED, UNDER_REVIEW, APPROVED, REJECTED
+  approverId   String?
+  approvalTime DateTime?
+  comments     String?
+  task         Task      @relation(fields: [taskId], references: [id])
+}
+
+model TaskDeliverable {
+  id             String   @id @default(uuid())
+  taskId         String
+  developerId    String
+  description    String?
+  attachmentIds  String?  // JSON stored as string for SQLite
+  submissionTime DateTime @default(now())
+  task           Task     @relation(fields: [taskId], references: [id])
+}
+
+model TaskAcceptance {
+  id             String   @id @default(uuid())
+  taskId         String
+  deliverableId  String
+  acceptorId     String
+  result         Boolean  @default(false)
+  comments       String?
+  acceptanceTime DateTime @default(now())
+  task           Task     @relation(fields: [taskId], references: [id])
+}
+
+model TaskApproval {
+  id          String    @id @default(uuid())
+  taskId      String
+  status      String    @default("DRAFT")  // DRAFT, SUBMITTED, UNDER_REVIEW, APPROVED, REJECTED
+  submittedBy String?
+  approvedBy  String?
+  approvedAt  DateTime?
+  comments    String?
+  task        Task      @relation(fields: [taskId], references: [id])
+}
+
+// ==================== ASSESSMENT MODELS ====================
+model AssessmentIndicator {
+  id              String  @id @default(uuid())
+  name            String
+  parentId        String?
+  weight          Float
+  scoringCriteria String?
+  description     String?
+}
+
+model AssessmentPlan {
+  id             String   @id @default(uuid())
+  name           String
+  targetPartners String?  // JSON stored as string for SQLite
+  cycle          String
+  assessors      String?  // JSON stored as string for SQLite
+  startDate      DateTime
+  endDate        DateTime
+  method         String
+  status         String   @default("DRAFT")  // DRAFT, PUBLISHED, IN_PROGRESS, COMPLETED
+  createdBy      String
+  createdAt      DateTime @default(now())
+}
+
+model Assessment {
+  id           String    @id @default(uuid())
+  planId       String
+  partnerId    String
+  status       String    @default("NOT_STARTED")  // NOT_STARTED, IN_PROGRESS, COMPLETED, CANCELLED
+  startDate    DateTime
+  endDate      DateTime?
+  overallScore Float?
+  assessmentReportId String?
+
+  scores             AssessmentScore[]
+  report             AssessmentReport? @relation(fields: [assessmentReportId], references: [id])
+}
+
+model AssessmentScore {
+  id           String     @id @default(uuid())
+  assessmentId String
+  indicatorId  String
+  autoScore    Float?
+  manualScore  Float?
+  finalScore   Float?
+  comments     String?
+  assessment   Assessment @relation(fields: [assessmentId], references: [id])
+}
+
+model AssessmentReport {
+  id            String       @id @default(uuid())
+  assessmentId  String       @unique
+  content       String?      // JSON stored as string for SQLite
+  filePath      String?
+  status        String       @default("DRAFT")  // DRAFT, APPROVED, PUBLISHED
+  approvalDate  DateTime?
+  publishedDate DateTime?
+  assessments   Assessment[]
+}
+
+model AssessmentApproval {
+  id          String    @id @default(uuid())
+  planId      String
+  status      String    @default("DRAFT")  // DRAFT, SUBMITTED, UNDER_REVIEW, APPROVED, REJECTED
+  submittedBy String?
+  approvedBy  String?
+  approvedAt  DateTime?
+  comments    String?
+}
+
+// ==================== IMPROVEMENT MODELS ====================
+model ImprovementRequirement {
+  id              String    @id @default(uuid())
+  originType      String  // ASSESSMENT, TASK_DELAY, AUDIT, RISK
+  originEntityId  String?
+  title           String
+  description     String?
+  targetDate      DateTime
+  responsibleType String  // PARTNER, DEVELOPER, TEAM
+  responsibleId   String?
+  status          String    @default("IDENTIFIED")  // IDENTIFIED, PLANNING, IN_PROGRESS, COMPLETED, ACCEPTED
+  createdBy       String
+  createdAt       DateTime  @default(now())
+
+  plan              ImprovementPlan? @relation(fields: [improvementPlanId], references: [id])
+  improvementPlanId String?
+}
+
+model ImprovementPlan {
+  id               String    @id @default(uuid())
+  requirementId    String    @unique
+  steps            String?   // JSON stored as string for SQLite
+  timeline         String?   // JSON stored as string for SQLite
+  responsibilities String?   // JSON stored as string for SQLite
+  status           String    @default("PLANNING")  // PLANNING, IN_PROGRESS, COMPLETED, ACCEPTED
+  approvedBy       String?
+  approvalDate     DateTime?
+  createdAt        DateTime  @default(now())
+
+  progresses              ImprovementProgress[]
+  acceptance              ImprovementAcceptance?   @relation(fields: [improvementAcceptanceId], references: [id])
+  approvals               ImprovementApproval[]
+  improvementRequirements ImprovementRequirement[]
+  improvementAcceptanceId String?
+}
+
+model ImprovementProgress {
+  id                String    @id @default(uuid())
+  planId            String
+  responsibleId     String
+  details           String?
+  updateTime        DateTime  @default(now())
+  improvementPlan   ImprovementPlan? @relation(fields: [planId], references: [id])
+  improvementPlanId String?
+}
+
+model ImprovementAcceptance {
+  id               String    @id @default(uuid())
+  planId           String    @unique
+  result           Boolean   @default(false)
+  comments         String?
+  acceptorId       String
+  acceptanceTime   DateTime  @default(now())
+  improvementPlans ImprovementPlan[]
+}
+
+model ImprovementApproval {
+  id                String    @id @default(uuid())
+  planId            String
+  status            String    @default("DRAFT")  // DRAFT, SUBMITTED, UNDER_REVIEW, APPROVED, REJECTED
+  submittedBy       String?
+  approvedBy        String?
+  approvedAt        DateTime?
+  comments          String?
+  improvementPlan   ImprovementPlan? @relation(fields: [planId], references: [id])
+  improvementPlanId String?
+}
+
+// ==================== RISK MODELS ====================
+model RiskType {
+  id          String  @id @default(uuid())
+  name        String  @unique
+  parentId    String?
+  description String?
+}
+
+model Risk {
+  id                  String   @id @default(uuid())
+  name                String
+  description         String?
+  typeId              String
+  level               String   @default("MEDIUM")  // LOW, MEDIUM, HIGH, CRITICAL
+  impact              String?
+  triggerConditions   String?
+  dispositionMeasures String?
+  createdBy           String
+  createdAt           DateTime @default(now())
+}
+
+// ==================== COMMON MODELS ====================
+model Attachment {
+  id               String   @id @default(uuid())
+  originalFilename String
+  storedFilename   String
+  contentType      String
+  fileSize         Int
+  storageKey       String
+  status           Boolean  @default(true)
+  entityType       String?
+  entityId         String?
+  uploadedBy       String
+  uploadTime       DateTime @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  tableName String
+  recordId  String
+  fieldName String?
+  oldValue  String?
+  newValue  String?
+  operation String
+  changedAt DateTime @default(now())
+  changedBy String
+  ipAddress String?
+  metadata  String?  // JSON stored as string for SQLite
+}
+
+model OperationLog {
+  id            String   @id @default(uuid())
+  userId        String
+  operationTime DateTime @default(now())
+  module        String
+  action        String
+  entityId      String?
+  changes       String?  // JSON stored as string for SQLite
+  ipAddress     String?
+  success       Boolean  @default(true)
+  errorMessage  String?
+}
