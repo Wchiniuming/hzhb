@@ -78,10 +78,11 @@ export const api = {
   },
 
   developers: {
-    list: (params?: { page?: number; limit?: number; partnerId?: string; status?: string }) => {
+    list: (params?: { page?: number; limit?: number; search?: string; partnerId?: string; status?: string }) => {
       const qs = new URLSearchParams();
       if (params?.page) qs.set('page', String(params.page));
-      if (params?.limit) qs.set('limit', String(params.limit));
+      if (params?.limit) qs.set('pageSize', String(params.limit));
+      if (params?.search) qs.set('search', params.search);
       if (params?.partnerId) qs.set('partnerId', params.partnerId);
       if (params?.status) qs.set('status', params.status);
       return request<{ data: any[]; meta: any }>(`/developers?${qs}`);
@@ -91,6 +92,7 @@ export const api = {
     update: (id: string, data: any) => request<any>(`/developers/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     remove: (id: string) => request<void>(`/developers/${id}`, { method: 'DELETE' }),
     getStats: () => request<any>('/developers/stats'),
+    getAllSkills: () => request<any[]>('/developers/skills'),
     addSkill: (id: string, data: any) => request<any>(`/developers/${id}/skills`, { method: 'POST', body: JSON.stringify(data) }),
     removeSkill: (id: string, skillId: string) => request<void>(`/developers/${id}/skills/${skillId}`, { method: 'DELETE' }),
     addExperience: (id: string, data: any) => request<any>(`/developers/${id}/experiences`, { method: 'POST', body: JSON.stringify(data) }),
