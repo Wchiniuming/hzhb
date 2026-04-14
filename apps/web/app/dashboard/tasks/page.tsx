@@ -20,17 +20,26 @@ const AntdTooltip = Tooltip as any;
 const AntdAvatar = Avatar as any;
 
 const priorityColors: Record<string, { bg: string; color: string }> = {
-  '高': { bg: 'rgba(255, 77, 79, 0.1)', color: colors.error },
-  '中': { bg: 'rgba(250, 173, 20, 0.1)', color: colors.warning },
-  '低': { bg: 'rgba(82, 196, 26, 0.1)', color: colors.success },
+  'URGENT': { bg: 'rgba(255, 77, 79, 0.1)', color: colors.error },
+  'HIGH': { bg: 'rgba(255, 77, 79, 0.1)', color: colors.error },
+  'MEDIUM': { bg: 'rgba(250, 173, 20, 0.1)', color: colors.warning },
+  'LOW': { bg: 'rgba(82, 196, 26, 0.1)', color: colors.success },
 };
 
 const statusColors: Record<string, { bg: string; color: string }> = {
-  '待分配': { bg: 'rgba(0, 0, 0, 0.04)', color: '#8c8c8c' },
-  '进行中': { bg: 'rgba(24, 144, 255, 0.1)', color: colors.primary },
-  '待验收': { bg: 'rgba(250, 173, 20, 0.1)', color: colors.warning },
-  '已完成': { bg: 'rgba(82, 196, 26, 0.1)', color: colors.success },
+  'NOT_STARTED': { bg: 'rgba(0, 0, 0, 0.04)', color: '#8c8c8c' },
+  'PENDING': { bg: 'rgba(0, 0, 0, 0.04)', color: '#8c8c8c' },
+  'IN_PROGRESS': { bg: 'rgba(24, 144, 255, 0.1)', color: colors.primary },
+  'ACCEPTED': { bg: 'rgba(24, 144, 255, 0.1)', color: colors.primary },
+  'COMPLETED': { bg: 'rgba(82, 196, 26, 0.1)', color: colors.success },
+  'DELAYED': { bg: 'rgba(255, 77, 79, 0.1)', color: colors.error },
 };
+
+const defaultColor = { bg: 'rgba(0,0,0,0.04)', color: '#8c8c8c' };
+
+function getColor(map: Record<string, { bg: string; color: string }>, key: string) {
+  return map[key] || defaultColor;
+}
 
 export default function TasksPage() {
   const [tasks, setTasks] = useState<any[]>([]);
@@ -165,8 +174,8 @@ export default function TasksPage() {
         <AntdTag
           style={{
             borderRadius: 6,
-            background: priorityColors[record.priority].bg,
-            color: priorityColors[record.priority].color,
+            background: getColor(priorityColors, record.priority).bg,
+            color: getColor(priorityColors, record.priority).color,
             border: 'none',
             fontWeight: 500,
           }}
@@ -183,8 +192,8 @@ export default function TasksPage() {
         <AntdTag
           style={{
             borderRadius: 6,
-            background: statusColors[record.status].bg,
-            color: statusColors[record.status].color,
+            background: getColor(statusColors, record.status).bg,
+            color: getColor(statusColors, record.status).color,
             border: 'none',
             fontWeight: 500,
           }}

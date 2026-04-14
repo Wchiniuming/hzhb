@@ -39,6 +39,10 @@ const levelColors: Record<string, string> = {
   JUNIOR: colors.info,
 };
 
+function getColorSimple(map: Record<string, string>, key: string): string {
+  return map[key] || '#8c8c8c';
+}
+
 const levelMap: Record<string, string> = {
   SENIOR: '高级',
   MIDDLE: '中级',
@@ -134,7 +138,7 @@ export default function DevelopersPage() {
       render: (_: any, record: any) => {
         const level = record.level || 'MIDDLE';
         return (
-          <AntdTag style={{ borderRadius: 6, background: `${levelColors[level]}15`, color: levelColors[level], border: 'none', fontWeight: 500 }}>
+          <AntdTag style={{ borderRadius: 6, background: `${getColorSimple(levelColors, level)}15`, color: getColorSimple(levelColors, level), border: 'none', fontWeight: 500 }}>
             {levelMap[level] || level}
           </AntdTag>
         );
@@ -147,7 +151,7 @@ export default function DevelopersPage() {
       render: (_: any, record: any) => {
         const status = record.status || 'ACTIVE';
         return (
-          <AntdTag style={{ borderRadius: 6, background: `${statusColors[status]}15`, color: statusColors[status], border: 'none', fontWeight: 500 }}>
+          <AntdTag style={{ borderRadius: 6, background: `${getColorSimple(statusColors, status)}15`, color: getColorSimple(statusColors, status), border: 'none', fontWeight: 500 }}>
             {statusMap[status] || status}
           </AntdTag>
         );
