@@ -31,13 +31,19 @@ const priorityColors: Record<string, { bg: string; color: string }> = {
 };
 
 const statusConfig: Record<string, { bg: string; color: string; icon: any }> = {
-  'PENDING': { bg: 'rgba(250, 173, 20, 0.1)', color: colors.warning, icon: FieldTimeOutlined },
+  'IDENTIFIED': { bg: 'rgba(250, 173, 20, 0.1)', color: colors.warning, icon: FieldTimeOutlined },
   'IN_PROGRESS': { bg: 'rgba(24, 144, 255, 0.1)', color: colors.primary, icon: ClockCircleOutlined },
-  'COMPLETED': { bg: 'rgba(82, 196, 26, 0.1)', color: colors.success, icon: CheckCircleOutlined },
+  'ACCEPTED': { bg: 'rgba(82, 196, 26, 0.1)', color: colors.success, icon: CheckCircleOutlined },
   '待验收': { bg: 'rgba(250, 173, 20, 0.1)', color: colors.warning, icon: FieldTimeOutlined },
   '进行中': { bg: 'rgba(24, 144, 255, 0.1)', color: colors.primary, icon: ClockCircleOutlined },
   '已完成': { bg: 'rgba(82, 196, 26, 0.1)', color: colors.success, icon: CheckCircleOutlined },
 };
+
+const defaultStatusConfig = { bg: 'rgba(0,0,0,0.04)', color: '#8c8c8c', icon: ClockCircleOutlined };
+
+function getStatusConfig(status: string) {
+  return statusConfig[status] || defaultStatusConfig;
+}
 
 const originColors: Record<string, { bg: string; color: string }> = {
   'ASSESSMENT': { bg: 'rgba(114, 46, 209, 0.1)', color: '#722ed1' },
@@ -118,19 +124,22 @@ export default function ImprovementsPage() {
       title: '来源',
       key: 'origin',
       width: 110,
-      render: (_: any, record: any) => (
-        <AntdTag
-          style={{
-            borderRadius: 6,
-            background: originColors[record.origin].bg,
-            color: originColors[record.origin].color,
-            border: 'none',
-            fontWeight: 500,
-          }}
-        >
-          {record.origin}
-        </AntdTag>
-      ),
+      render: (_: any, record: any) => {
+        const originStyle = getColor(originColors, record.origin);
+        return (
+          <AntdTag
+            style={{
+              borderRadius: 6,
+              background: originStyle.bg,
+              color: originStyle.color,
+              border: 'none',
+              fontWeight: 500,
+            }}
+          >
+            {record.origin}
+          </AntdTag>
+        );
+      },
     },
     {
       title: '合作伙伴',
@@ -201,7 +210,8 @@ export default function ImprovementsPage() {
       key: 'status',
       width: 100,
       render: (_: any, record: any) => {
-        const Icon = statusConfig[record.status].icon;
+        const config = getStatusConfig(record.status);
+        const Icon = config.icon;
         return (
           <div
             style={{
@@ -210,8 +220,8 @@ export default function ImprovementsPage() {
               gap: 6,
               padding: '4px 10px',
               borderRadius: 6,
-              background: statusConfig[record.status].bg,
-              color: statusConfig[record.status].color,
+              background: config.bg,
+              color: config.color,
               fontSize: 13,
               fontWeight: 500,
             }}

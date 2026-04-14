@@ -71,7 +71,7 @@ export default function DevelopersPage() {
 
   useEffect(() => { fetchData(); }, [page]);
 
-  const getSkills = (skills: any[]) => skills?.map((s: any) => s.name || s.skillName || s) || [];
+  const getSkills = (skills: any[]) => skills?.map((s: any) => s.skillTag?.name || s.name || s.skillName || String(s)) || [];
 
   const columns = [
     {

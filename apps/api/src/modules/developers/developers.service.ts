@@ -45,11 +45,8 @@ export class DevelopersService {
     ]);
 
     return {
-      items: developers,
-      total,
-      page,
-      pageSize,
-      totalPages: Math.ceil(total / pageSize),
+      data: developers,
+      meta: { page, limit: pageSize, total, totalPages: Math.ceil(total / pageSize) },
     };
   }
 

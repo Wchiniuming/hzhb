@@ -25,10 +25,17 @@ const levelConfig: Record<string, { bg: string; color: string; icon: any }> = {
   'HIGH': { bg: 'rgba(255, 77, 79, 0.1)', color: colors.error, icon: ExclamationCircleOutlined },
   'MEDIUM': { bg: 'rgba(250, 173, 20, 0.1)', color: colors.warning, icon: WarningOutlined },
   'LOW': { bg: 'rgba(82, 196, 26, 0.1)', color: colors.success, icon: CheckCircleOutlined },
+  'CRITICAL': { bg: 'rgba(255, 77, 79, 0.15)', color: colors.error, icon: ExclamationCircleOutlined },
   '高': { bg: 'rgba(255, 77, 79, 0.1)', color: colors.error, icon: ExclamationCircleOutlined },
   '中': { bg: 'rgba(250, 173, 20, 0.1)', color: colors.warning, icon: WarningOutlined },
   '低': { bg: 'rgba(82, 196, 26, 0.1)', color: colors.success, icon: CheckCircleOutlined },
 };
+
+const defaultLevelConfig = { bg: 'rgba(0,0,0,0.04)', color: '#8c8c8c', icon: WarningOutlined };
+
+function getLevelConfig(level: string) {
+  return levelConfig[level] || defaultLevelConfig;
+}
 
 const statusConfig: Record<string, { bg: string; color: string }> = {
   'MONITORING': { bg: 'rgba(24, 144, 255, 0.1)', color: colors.primary },
@@ -164,7 +171,8 @@ export default function RisksPage() {
       key: 'level',
       width: 100,
       render: (_: any, record: any) => {
-        const Icon = levelConfig[record.level].icon;
+        const config = getLevelConfig(record.level);
+        const Icon = config.icon;
         return (
           <div
             style={{
@@ -173,8 +181,8 @@ export default function RisksPage() {
               gap: 6,
               padding: '4px 12px',
               borderRadius: 8,
-              background: levelConfig[record.level].bg,
-              color: levelConfig[record.level].color,
+              background: config.bg,
+              color: config.color,
               fontWeight: 600,
             }}
           >

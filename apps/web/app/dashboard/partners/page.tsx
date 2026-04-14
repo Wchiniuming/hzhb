@@ -60,7 +60,7 @@ export default function PartnersPage() {
         status: partner.status || '合作中',
       }));
       setPartners(mappedData);
-      setTotal(res.meta?.total || res.data.length);
+      setTotal(res.meta.total);
     } catch (err: any) {
       message.error(err.message || '获取合作伙伴列表失败');
     } finally {

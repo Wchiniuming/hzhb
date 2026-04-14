@@ -45,14 +45,11 @@ export class PartnersService {
     const countMap = new Map(developerCounts.map(d => [d.partnerId, d._count]));
 
     return {
-      items: partners.map(p => ({
+      data: partners.map(p => ({
         ...p,
         developerCount: countMap.get(p.id) || 0,
       })),
-      total,
-      page,
-      pageSize,
-      totalPages: Math.ceil(total / pageSize),
+      meta: { page, limit: pageSize, total, totalPages: Math.ceil(total / pageSize) },
     };
   }
 
