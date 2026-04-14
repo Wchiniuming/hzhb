@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Table, Button, Input, Tag, Avatar, Tooltip, message } from 'antd';
+import { Table, Button, Input, Tag, Avatar, Tooltip } from 'antd';
 import {
   PlusOutlined,
   SearchOutlined,
@@ -13,6 +13,7 @@ import {
 } from '@ant-design/icons';
 import { colors } from '@/lib/theme';
 import api from '@/lib/api';
+import { useMessage } from '@/components/useMessage';
 
 const AntdTable = Table as any;
 const AntdButton = Button as any;
@@ -51,6 +52,7 @@ export default function DevelopersPage() {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState('');
+  const messageApi = useMessage();
 
   const fetchData = async () => {
     setLoading(true);
@@ -59,7 +61,7 @@ export default function DevelopersPage() {
       setData(res.data.map((d: any) => ({ ...d, key: d.id })));
       setTotal(res.meta.total);
     } catch {
-      message.error('加载失败');
+      messageApi.error('加载失败');
     } finally {
       setLoading(false);
     }

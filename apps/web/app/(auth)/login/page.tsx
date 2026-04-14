@@ -1,9 +1,12 @@
 'use client';
 
-import { Form, Input, Button, message } from 'antd';
+import { Form, Input, Button } from 'antd';
 import { UserOutlined, LockOutlined, SafetyOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import { colors } from '@/lib/theme';
+import api from '@/lib/api';
+import { useMessage } from '@/components/useMessage';
 
 const AntdForm = Form as any;
 const AntdInput = Input as any;
@@ -12,23 +15,21 @@ const AntdButton = Button as any;
 export default function LoginPage() {
   const router = useRouter();
   const [form] = Form.useForm();
+  const [loading, setLoading] = useState(false);
+  const messageApi = useMessage();
 
   const onFinish = async (values: { username: string; password: string }) => {
+    setLoading(true);
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(values),
-      });
-
-      if (response.ok) {
-        message.success('登录成功，即将跳转...');
-        setTimeout(() => router.push('/dashboard'), 500);
-      } else {
-        message.error('用户名或密码错误');
-      }
+      const data = await api.auth.login(values);
+      localStorage.setItem('token', data.accessToken);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      messageApi.success('登录成功，即将跳转...');
+      setTimeout(() => router.push('/dashboard'), 500);
     } catch {
-      message.error('登录失败，请稍后重试');
+      messageApi.error('用户名或密码错误');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -196,6 +197,7 @@ export default function LoginPage() {
               <AntdButton
                 type="primary"
                 htmlType="submit"
+                loading={loading}
                 block
                 style={{
                   height: 48,
@@ -207,7 +209,7 @@ export default function LoginPage() {
                   boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)',
                 }}
               >
-                登 录
+                {loading ? '登录中...' : '登 录'}
               </AntdButton>
             </AntdForm.Item>
 

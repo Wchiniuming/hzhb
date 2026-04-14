@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Layout, Menu, Button, Dropdown, Avatar, Badge } from 'antd';
 import {
   TeamOutlined,
@@ -73,6 +73,19 @@ export default function DashboardLayout({
   const router = useRouter();
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const userStr = localStorage.getItem('user');
+    if (!token) {
+      router.replace('/login');
+      return;
+    }
+    if (userStr) {
+      setUser(JSON.parse(userStr));
+    }
+  }, [router]);
 
   const userMenuItems = [
     {
@@ -94,6 +107,8 @@ export default function DashboardLayout({
 
   const handleUserMenuClick = ({ key }: { key: string }) => {
     if (key === 'logout') {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
       router.push('/login');
     }
   };
@@ -251,10 +266,10 @@ export default function DashboardLayout({
                 />
                 <div style={{ lineHeight: 1.3 }}>
                   <div style={{ fontWeight: 500, color: colors.text.primary, fontSize: 14 }}>
-                    管理员
+                    {user?.name || user?.username || '管理员'}
                   </div>
                   <div style={{ color: colors.text.secondary, fontSize: 12 }}>
-                    SYSTEM_ADMIN
+                    {user?.role?.name || 'USER'}
                   </div>
                 </div>
               </div>
