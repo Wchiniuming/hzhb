@@ -75,7 +75,7 @@ export default function PartnersPage() {
               width: 50,
               height: 50,
               borderRadius: 12,
-              background: colors.cardColors[parseInt(record.key) % 6].gradient,
+              background: colors.cardColors[(parseInt(record.key) || 0) % 6].gradient,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',

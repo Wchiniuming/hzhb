@@ -78,7 +78,7 @@ export default function AssessmentsPage() {
               width: 44,
               height: 44,
               borderRadius: 12,
-              background: colors.cardColors[parseInt(record.key) % 6].gradient,
+              background: colors.cardColors[(parseInt(record.key) || 0) % 6].gradient,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',

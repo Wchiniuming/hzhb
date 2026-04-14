@@ -193,7 +193,7 @@ export default function RisksPage() {
           <AntdAvatar
             size={28}
             style={{
-              background: colors.cardColors[(parseInt(record.key) + 2) % 6].gradient,
+              background: colors.cardColors[(parseInt(record.key) || 0) % 6].gradient,
               fontSize: 11,
             }}
           >

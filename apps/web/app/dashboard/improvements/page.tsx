@@ -129,7 +129,7 @@ export default function ImprovementsPage() {
               width: 32,
               height: 32,
               borderRadius: 8,
-              background: colors.cardColors[parseInt(record.key) % 6].gradient,
+              background: colors.cardColors[(parseInt(record.key) || 0) % 6].gradient,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -153,7 +153,7 @@ export default function ImprovementsPage() {
           <AntdAvatar
             size={28}
             style={{
-              background: colors.cardColors[(parseInt(record.key) + 1) % 6].gradient,
+              background: colors.cardColors[(parseInt(record.key) || 0) % 6].gradient,
               fontSize: 11,
             }}
           >

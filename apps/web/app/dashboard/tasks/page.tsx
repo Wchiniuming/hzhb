@@ -41,6 +41,11 @@ function getColor(map: Record<string, { bg: string; color: string }>, key: strin
   return map[key] || defaultColor;
 }
 
+function safeIndex(key: string | number, i: number): number {
+  const n = parseInt(String(key), 10);
+  return isNaN(n) ? i % 6 : (n + i) % 6;
+}
+
 export default function TasksPage() {
   const [tasks, setTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -139,7 +144,7 @@ export default function TasksPage() {
               key={i}
               size={28}
               style={{
-                background: colors.cardColors[(parseInt(record.key) + i) % 6].gradient,
+                background: colors.cardColors[safeIndex(record.key, i)].gradient,
                 fontSize: 11,
                 marginLeft: i > 0 ? -8 : 0,
                 border: '2px solid #fff',
