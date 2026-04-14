@@ -98,4 +98,9 @@ export class ImprovementsController {
   async reject(@Param('approvalId', ParseUUIDPipe) approvalId: string, @Body() body: { comments: string }, @CurrentUser() user: any) {
     return this.improvementsService.reject(approvalId, user.id, body.comments);
   }
+
+  @Get('stats')
+  async getStats() {
+    return this.improvementsService.getStats();
+  }
 }

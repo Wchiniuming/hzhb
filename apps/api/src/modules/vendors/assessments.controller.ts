@@ -116,4 +116,9 @@ export class AssessmentsController {
   async generateReport(@Param('id', ParseUUIDPipe) id: string) {
     return this.assessmentsService.generateReport(id);
   }
+
+  @Get('stats')
+  async getStats() {
+    return this.assessmentsService.getStats();
+  }
 }

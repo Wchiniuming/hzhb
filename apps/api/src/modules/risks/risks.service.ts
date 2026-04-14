@@ -74,4 +74,13 @@ export class RisksService {
     if (!risk) throw new NotFoundException(`Risk with ID ${id} not found`);
     await this.prisma.risk.delete({ where: { id } });
   }
+
+  async getStats() {
+    const [total, byLevel, byType] = await Promise.all([
+      this.prisma.risk.count(),
+      this.prisma.risk.groupBy({ by: ['level'], _count: true }),
+      this.prisma.risk.groupBy({ by: ['typeId'], _count: true }),
+    ]);
+    return { total, byLevel: byLevel.map(l => ({ level: l.level, count: l._count })), typeCount: byType.length };
+  }
 }

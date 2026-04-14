@@ -9,13 +9,9 @@ import {
   Query,
   HttpCode,
   HttpStatus,
-  ParseUUIDPipe,
-  DefaultValuePipe,
-  ParseIntPipe,
+  Patch,
 } from '@nestjs/common';
 import { PartnersService } from './partners.service';
-import { CreatePartnerDto } from './dto/create-partner.dto';
-import { UpdatePartnerDto } from './dto/update-partner.dto';
 
 @Controller('partners')
 export class PartnersController {
@@ -23,35 +19,74 @@ export class PartnersController {
 
   @Get()
   async findAll(
-    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
-    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+    @Query('page') page = '1',
+    @Query('pageSize') pageSize = '10',
+    @Query('search') search?: string,
     @Query('status') status?: string,
   ) {
-    return this.partnersService.findAll(page, limit, status);
+    return this.partnersService.findAll({
+      page: parseInt(page),
+      pageSize: parseInt(pageSize),
+      search,
+      status,
+    });
+  }
+
+  @Get('stats')
+  async getStats() {
+    return this.partnersService.getStats();
+  }
+
+  @Get('all')
+  async findAllSimple() {
+    return this.partnersService.findAllSimple();
   }
 
   @Get(':id')
-  async findOne(@Param('id', ParseUUIDPipe) id: string) {
+  async findOne(@Param('id') id: string) {
     return this.partnersService.findOne(id);
+  }
+
+  @Get(':id/details')
+  async getDetails(@Param('id') id: string) {
+    return this.partnersService.getDetails(id);
   }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async create(@Body() createPartnerDto: CreatePartnerDto) {
+  async create(
+    @Body() createPartnerDto: {
+      name: string;
+      contactInfo?: any;
+      status?: string;
+    }
+  ) {
     return this.partnersService.create(createPartnerDto);
   }
 
   @Put(':id')
   async update(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() updatePartnerDto: UpdatePartnerDto,
+    @Param('id') id: string,
+    @Body() updatePartnerDto: {
+      name?: string;
+      contactInfo?: any;
+      status?: string;
+    }
   ) {
     return this.partnersService.update(id, updatePartnerDto);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async remove(@Param('id', ParseUUIDPipe) id: string) {
+  async remove(@Param('id') id: string) {
     return this.partnersService.remove(id);
+  }
+
+  @Patch(':id/status')
+  async updateStatus(
+    @Param('id') id: string,
+    @Body() body: { status: string },
+  ) {
+    return this.partnersService.updateStatus(id, body.status);
   }
 }

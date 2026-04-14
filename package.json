@@ -19,13 +19,20 @@
   "license": "ISC",
   "type": "module",
   "devDependencies": {
+    "@types/multer": "^2.1.0",
     "@types/node": "25.6.0",
     "turbo": "2.9.6",
     "typescript": "6.0.2"
   },
   "dependencies": {
+    "@nestjs/platform-socket.io": "^11.1.19",
+    "@nestjs/websockets": "^11.1.19",
+    "@types/xlsx": "^0.0.35",
     "next": "^16.2.3",
     "react": "^19.2.5",
-    "react-dom": "^19.2.5"
+    "react-dom": "^19.2.5",
+    "socket.io": "^4.8.3",
+    "styled-jsx": "^5.1.7",
+    "xlsx": "^0.18.5"
   }
 }

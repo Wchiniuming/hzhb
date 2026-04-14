@@ -1,32 +1,129 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { CreateDeveloperDto, UpdateDeveloperDto, AddSkillDto, UpdateSkillDto, AddExperienceDto, AddCertificateDto } from './dto';
 
 @Injectable()
 export class DevelopersService {
   constructor(private prisma: PrismaService) {}
 
-  async findAll(page: number, limit: number, partnerId?: string, status?: string) {
-    const skip = (page - 1) * limit;
+  async findAll(params: {
+    page: number;
+    pageSize: number;
+    search?: string;
+    partnerId?: string;
+    status?: string;
+  }) {
+    const { page, pageSize, search, partnerId, status } = params;
+    const skip = (page - 1) * pageSize;
+
     const where: any = {};
-    if (partnerId) where.partnerId = partnerId;
-    if (status) where.status = status;
+
+    if (search) {
+      where.OR = [
+        { name: { contains: search } },
+      ];
+    }
+
+    if (partnerId) {
+      where.partnerId = partnerId;
+    }
+
+    if (status) {
+      where.status = status;
+    }
 
     const [developers, total] = await Promise.all([
       this.prisma.developer.findMany({
         where,
         skip,
-        take: limit,
+        take: pageSize,
         orderBy: { createdAt: 'desc' },
-        include: { skills: { include: { skillTag: true } } },
+        include: {
+          skills: { include: { skillTag: true } },
+        },
       }),
       this.prisma.developer.count({ where }),
     ]);
 
-    return { data: developers, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
+    return {
+      items: developers,
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
+    };
+  }
+
+  async getStats() {
+    const [total, byStatus, byPartner, topSkills] = await Promise.all([
+      this.prisma.developer.count(),
+      this.prisma.developer.groupBy({
+        by: ['status'],
+        _count: true,
+      }),
+      this.prisma.developer.groupBy({
+        by: ['partnerId'],
+        _count: true,
+      }),
+      this.prisma.developerSkill.groupBy({
+        by: ['skillTagId'],
+        _count: true,
+        orderBy: { _count: { skillTagId: 'desc' } },
+        take: 10,
+      }),
+    ]);
+
+    const partners = await this.prisma.partner.findMany({
+      where: { id: { in: byPartner.map(p => p.partnerId) } },
+      select: { id: true, name: true },
+    });
+
+    const skillTags = await this.prisma.skillTag.findMany({
+      where: { id: { in: topSkills.map(s => s.skillTagId) } },
+      select: { id: true, name: true },
+    });
+
+    return {
+      total,
+      byStatus: byStatus.map(s => ({ status: s.status, count: s._count })),
+      byPartner: byPartner.map(p => ({
+        partnerId: p.partnerId,
+        partnerName: partners.find(part => part.id === p.partnerId)?.name || '',
+        count: p._count,
+      })),
+      topSkills: topSkills.map(s => ({
+        skillId: s.skillTagId,
+        skillName: skillTags.find(tag => tag.id === s.skillTagId)?.name || '',
+        count: s._count,
+      })),
+    };
+  }
+
+  async getAllSkills() {
+    const skills = await this.prisma.skillTag.findMany({
+      orderBy: { name: 'asc' },
+      include: {
+        _count: { select: { developers: true } },
+      },
+    });
+
+    return skills.map(s => ({
+      ...s,
+      developerCount: (s as any)._count?.developers || 0,
+    }));
   }
 
   async findOne(id: string) {
+    const developer = await this.prisma.developer.findUnique({
+      where: { id },
+      include: {
+        skills: { include: { skillTag: true } },
+      },
+    });
+    if (!developer) throw new NotFoundException(`开发人员不存在: ${id}`);
+    return developer;
+  }
+
+  async getDetails(id: string) {
     const developer = await this.prisma.developer.findUnique({
       where: { id },
       include: {
@@ -36,161 +133,227 @@ export class DevelopersService {
         approvals: { orderBy: { createdAt: 'desc' } },
       },
     });
-    if (!developer) throw new NotFoundException(`Developer with ID ${id} not found`);
+    if (!developer) throw new NotFoundException(`开发人员不存在: ${id}`);
     return developer;
   }
 
-  async create(createDeveloperDto: CreateDeveloperDto) {
-    return this.prisma.developer.create({
+  async create(createDto: {
+    name: string;
+    partnerId: string;
+    gender?: string;
+    age?: number;
+    contact?: any;
+    status?: string;
+    skillIds?: string[];
+  }) {
+    const contact = typeof createDto.contact === 'object'
+      ? JSON.stringify(createDto.contact)
+      : createDto.contact;
+
+    const developer = await this.prisma.developer.create({
       data: {
-        partnerId: createDeveloperDto.partnerId,
-        name: createDeveloperDto.name,
-        gender: createDeveloperDto.gender,
-        age: createDeveloperDto.age,
-        contact: createDeveloperDto.contact ? JSON.stringify(createDeveloperDto.contact) : null,
-        status: 'PENDING',
+        name: createDto.name,
+        partnerId: createDto.partnerId,
+        gender: createDto.gender,
+        age: createDto.age,
+        contact,
+        status: createDto.status || 'PENDING',
+        skills: createDto.skillIds ? {
+          create: createDto.skillIds.map(skillId => ({
+            skillTagId: skillId,
+          })),
+        } : undefined,
+      },
+      include: {
+        skills: { include: { skillTag: true } },
       },
     });
+
+    return developer;
   }
 
-  async update(id: string, updateDeveloperDto: UpdateDeveloperDto) {
-    const developer = await this.prisma.developer.findUnique({ where: { id } });
-    if (!developer) throw new NotFoundException(`Developer with ID ${id} not found`);
-    return this.prisma.developer.update({ where: { id }, data: updateDeveloperDto });
+  async update(id: string, updateDto: {
+    name?: string;
+    gender?: string;
+    age?: number;
+    contact?: any;
+    status?: string;
+  }) {
+    const existing = await this.prisma.developer.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException(`开发人员不存在: ${id}`);
+
+    const contact = updateDto.contact !== undefined
+      ? (typeof updateDto.contact === 'object' ? JSON.stringify(updateDto.contact) : updateDto.contact)
+      : existing.contact;
+
+    return this.prisma.developer.update({
+      where: { id },
+      data: {
+        name: updateDto.name,
+        gender: updateDto.gender,
+        age: updateDto.age,
+        contact,
+        status: updateDto.status,
+      },
+      include: {
+        skills: { include: { skillTag: true } },
+      },
+    });
   }
 
   async remove(id: string) {
-    const developer = await this.prisma.developer.findUnique({ where: { id } });
-    if (!developer) throw new NotFoundException(`Developer with ID ${id} not found`);
-    return this.prisma.developer.update({ where: { id }, data: { status: 'INACTIVE' } });
+    const existing = await this.prisma.developer.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException(`开发人员不存在: ${id}`);
+
+    await this.prisma.developer.update({
+      where: { id },
+      data: { status: 'INACTIVE' },
+    });
   }
 
-  async addSkill(developerId: string, addSkillDto: AddSkillDto) {
+  async updateStatus(id: string, status: string) {
+    return this.prisma.developer.update({
+      where: { id },
+      data: { status },
+    });
+  }
+
+  async addSkills(developerId: string, skillIds: string[], proficiency?: string) {
     const developer = await this.prisma.developer.findUnique({ where: { id: developerId } });
-    if (!developer) throw new NotFoundException(`Developer with ID ${developerId} not found`);
+    if (!developer) throw new NotFoundException(`开发人员不存在: ${developerId}`);
 
-    const skillTag = await this.prisma.skillTag.findUnique({ where: { id: addSkillDto.skillTagId } });
-    if (!skillTag) throw new NotFoundException(`SkillTag with ID ${addSkillDto.skillTagId} not found`);
+    const skills = await Promise.all(
+      skillIds.map(async skillTagId => {
+        const existing = await this.prisma.developerSkill.findUnique({
+          where: { developerId_skillTagId: { developerId, skillTagId } },
+        });
+        if (existing) return existing;
 
-    const existing = await this.prisma.developerSkill.findUnique({
-      where: { developerId_skillTagId: { developerId, skillTagId: addSkillDto.skillTagId } },
-    });
-    if (existing) throw new ConflictException('Skill already exists for this developer');
+        return this.prisma.developerSkill.create({
+          data: { developerId, skillTagId, proficiency: proficiency || 'INTERMEDIATE' },
+          include: { skillTag: true },
+        });
+      })
+    );
 
-    return this.prisma.developerSkill.create({
-      data: { developerId, skillTagId: addSkillDto.skillTagId, proficiency: addSkillDto.proficiency },
-      include: { skillTag: true },
-    });
-  }
-
-  async updateSkill(developerId: string, skillTagId: string, updateSkillDto: UpdateSkillDto) {
-    const skill = await this.prisma.developerSkill.findUnique({
-      where: { developerId_skillTagId: { developerId, skillTagId } },
-    });
-    if (!skill) throw new NotFoundException('Skill not found for this developer');
-    return this.prisma.developerSkill.update({
-      where: { developerId_skillTagId: { developerId, skillTagId } },
-      data: { proficiency: updateSkillDto.proficiency },
-      include: { skillTag: true },
-    });
+    return skills;
   }
 
   async removeSkill(developerId: string, skillTagId: string) {
-    const skill = await this.prisma.developerSkill.findUnique({
+    await this.prisma.developerSkill.delete({
       where: { developerId_skillTagId: { developerId, skillTagId } },
     });
-    if (!skill) throw new NotFoundException('Skill not found for this developer');
-    await this.prisma.developerSkill.delete({ where: { developerId_skillTagId: { developerId, skillTagId } } });
   }
 
-  async addExperience(developerId: string, addExperienceDto: AddExperienceDto) {
+  async addExperience(developerId: string, dto: {
+    projectName: string;
+    role?: string;
+    startDate: Date;
+    endDate?: Date;
+    description?: string;
+  }) {
     const developer = await this.prisma.developer.findUnique({ where: { id: developerId } });
-    if (!developer) throw new NotFoundException(`Developer with ID ${developerId} not found`);
+    if (!developer) throw new NotFoundException(`开发人员不存在: ${developerId}`);
+
     return this.prisma.developerExperience.create({
       data: {
         developerId,
-        projectName: addExperienceDto.projectName,
-        role: addExperienceDto.role,
-        startDate: new Date(addExperienceDto.startDate),
-        endDate: addExperienceDto.endDate ? new Date(addExperienceDto.endDate) : null,
-        description: addExperienceDto.description,
+        projectName: dto.projectName,
+        role: dto.role,
+        startDate: new Date(dto.startDate),
+        endDate: dto.endDate ? new Date(dto.endDate) : null,
+        description: dto.description,
       },
     });
   }
 
-  async updateExperience(developerId: string, experienceId: string, updateDto: AddExperienceDto) {
-    const experience = await this.prisma.developerExperience.findUnique({ where: { id: experienceId } });
-    if (!experience || experience.developerId !== developerId) throw new NotFoundException('Experience not found');
+  async updateExperience(developerId: string, expId: string, dto: {
+    projectName?: string;
+    role?: string;
+    startDate?: Date;
+    endDate?: Date;
+    description?: string;
+  }) {
+    const experience = await this.prisma.developerExperience.findUnique({
+      where: { id: expId },
+    });
+    if (!experience || experience.developerId !== developerId) {
+      throw new NotFoundException('项目经验不存在');
+    }
+
     return this.prisma.developerExperience.update({
-      where: { id: experienceId },
+      where: { id: expId },
       data: {
-        projectName: updateDto.projectName,
-        role: updateDto.role,
-        startDate: new Date(updateDto.startDate),
-        endDate: updateDto.endDate ? new Date(updateDto.endDate) : undefined,
-        description: updateDto.description,
+        projectName: dto.projectName,
+        role: dto.role,
+        startDate: dto.startDate ? new Date(dto.startDate) : undefined,
+        endDate: dto.endDate ? new Date(dto.endDate) : undefined,
+        description: dto.description,
       },
     });
   }
 
-  async removeExperience(developerId: string, experienceId: string) {
-    const experience = await this.prisma.developerExperience.findUnique({ where: { id: experienceId } });
-    if (!experience || experience.developerId !== developerId) throw new NotFoundException('Experience not found');
-    await this.prisma.developerExperience.delete({ where: { id: experienceId } });
+  async removeExperience(developerId: string, expId: string) {
+    const experience = await this.prisma.developerExperience.findUnique({
+      where: { id: expId },
+    });
+    if (!experience || experience.developerId !== developerId) {
+      throw new NotFoundException('项目经验不存在');
+    }
+
+    await this.prisma.developerExperience.delete({ where: { id: expId } });
   }
 
-  async addCertificate(developerId: string, addCertificateDto: AddCertificateDto) {
+  async addCertificate(developerId: string, dto: {
+    name: string;
+    issuingBody?: string;
+    issueDate: Date;
+    expireDate?: Date;
+    attachmentId?: string;
+  }) {
     const developer = await this.prisma.developer.findUnique({ where: { id: developerId } });
-    if (!developer) throw new NotFoundException(`Developer with ID ${developerId} not found`);
+    if (!developer) throw new NotFoundException(`开发人员不存在: ${developerId}`);
+
     return this.prisma.certificate.create({
       data: {
         developerId,
-        name: addCertificateDto.name,
-        issuingBody: addCertificateDto.issuingBody,
-        issueDate: new Date(addCertificateDto.issueDate),
-        expireDate: addCertificateDto.expireDate ? new Date(addCertificateDto.expireDate) : null,
-        attachmentId: addCertificateDto.attachmentId,
+        name: dto.name,
+        issuingBody: dto.issuingBody,
+        issueDate: new Date(dto.issueDate),
+        expireDate: dto.expireDate ? new Date(dto.expireDate) : null,
+        attachmentId: dto.attachmentId,
       },
     });
   }
 
-  async removeCertificate(developerId: string, certificateId: string) {
-    const certificate = await this.prisma.certificate.findUnique({ where: { id: certificateId } });
-    if (!certificate || certificate.developerId !== developerId) throw new NotFoundException('Certificate not found');
-    await this.prisma.certificate.delete({ where: { id: certificateId } });
-  }
-
-  async submitForApproval(developerId: string, submittedBy: string) {
-    const developer = await this.prisma.developer.findUnique({ where: { id: developerId } });
-    if (!developer) throw new NotFoundException(`Developer with ID ${developerId} not found`);
-    return this.prisma.developerApproval.create({
-      data: { developerId, status: 'SUBMITTED', submittedBy },
+  async removeCertificate(developerId: string, certId: string) {
+    const certificate = await this.prisma.certificate.findUnique({
+      where: { id: certId },
     });
-  }
-
-  async approve(approvalId: string, approvedBy: string, comments?: string) {
-    const approval = await this.prisma.developerApproval.findUnique({ where: { id: approvalId } });
-    if (!approval) throw new NotFoundException(`Approval with ID ${approvalId} not found`);
-    const updated = await this.prisma.developerApproval.update({
-      where: { id: approvalId },
-      data: { status: 'APPROVED', approvedBy, approvedAt: new Date(), comments },
-    });
-    if (updated.status === 'APPROVED') {
-      await this.prisma.developer.update({ where: { id: updated.developerId }, data: { status: 'APPROVED' } });
+    if (!certificate || certificate.developerId !== developerId) {
+      throw new NotFoundException('证书不存在');
     }
-    return updated;
+
+    await this.prisma.certificate.delete({ where: { id: certId } });
   }
 
-  async reject(approvalId: string, approvedBy: string, comments: string) {
-    const approval = await this.prisma.developerApproval.findUnique({ where: { id: approvalId } });
-    if (!approval) throw new NotFoundException(`Approval with ID ${approvalId} not found`);
-    return this.prisma.developerApproval.update({
-      where: { id: approvalId },
-      data: { status: 'REJECTED', approvedBy, approvedAt: new Date(), comments },
+  async approve(developerId: string, status: string, comments?: string) {
+    const developer = await this.prisma.developer.findUnique({ where: { id: developerId } });
+    if (!developer) throw new NotFoundException(`开发人员不存在: ${developerId}`);
+
+    await this.prisma.developer.update({
+      where: { id: developerId },
+      data: { status },
     });
-  }
 
-  async getApprovals(developerId: string) {
-    return this.prisma.developerApproval.findMany({ where: { developerId }, orderBy: { createdAt: 'desc' } });
+    await this.prisma.developerApproval.create({
+      data: {
+        developerId,
+        status,
+        comments,
+      },
+    });
+
+    return { success: true, message: '审批成功' };
   }
 }

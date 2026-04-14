@@ -1,6 +1,7 @@
 'use client';
 
-import { Table, Button, Tag, Progress, Tooltip } from 'antd';
+import { useEffect, useState } from 'react';
+import { Table, Button, Tag, Progress, Tooltip, message } from 'antd';
 import {
   PlusOutlined,
   CheckCircleOutlined,
@@ -10,87 +11,13 @@ import {
   BarChartOutlined,
 } from '@ant-design/icons';
 import { colors } from '@/lib/theme';
+import { api } from '@/lib/api';
 
 const AntdTable = Table as any;
 const AntdButton = Button as any;
 const AntdTag = Tag as any;
 const AntdProgress = Progress as any;
 const AntdTooltip = Tooltip as any;
-
-const assessments = [
-  {
-    key: '1',
-    partner: '华钦科技',
-    partnerInitial: '华',
-    period: '2024 Q1',
-    indicators: [
-      { name: '技术能力', score: 92, weight: 0.25 },
-      { name: '交付质量', score: 88, weight: 0.25 },
-      { name: '服务响应', score: 95, weight: 0.20 },
-      { name: '人员素质', score: 90, weight: 0.15 },
-      { name: '合规性', score: 94, weight: 0.15 },
-    ],
-    overallScore: 91.6,
-    level: 'A级',
-    assessor: '管理员',
-    status: '已完成',
-    completedDate: '2024-01-31',
-  },
-  {
-    key: '2',
-    partner: '博雅软件',
-    partnerInitial: '博',
-    period: '2024 Q1',
-    indicators: [
-      { name: '技术能力', score: 78, weight: 0.25 },
-      { name: '交付质量', score: 82, weight: 0.25 },
-      { name: '服务响应', score: 75, weight: 0.20 },
-      { name: '人员素质', score: 80, weight: 0.15 },
-      { name: '合规性', score: 85, weight: 0.15 },
-    ],
-    overallScore: 79.6,
-    level: 'B级',
-    assessor: '管理员',
-    status: '进行中',
-    completedDate: '-',
-  },
-  {
-    key: '3',
-    partner: '创新科技',
-    partnerInitial: '创',
-    period: '2024 Q1',
-    indicators: [
-      { name: '技术能力', score: 72, weight: 0.25 },
-      { name: '交付质量', score: 75, weight: 0.25 },
-      { name: '服务响应', score: 80, weight: 0.20 },
-      { name: '人员素质', score: 78, weight: 0.15 },
-      { name: '合规性', score: 82, weight: 0.15 },
-    ],
-    overallScore: 76.9,
-    level: 'B级',
-    assessor: '管理员',
-    status: '已完成',
-    completedDate: '2024-01-28',
-  },
-  {
-    key: '4',
-    partner: '未来数字',
-    partnerInitial: '未',
-    period: '2024 Q1',
-    indicators: [
-      { name: '技术能力', score: 85, weight: 0.25 },
-      { name: '交付质量', score: 88, weight: 0.25 },
-      { name: '服务响应', score: 90, weight: 0.20 },
-      { name: '人员素质', score: 87, weight: 0.15 },
-      { name: '合规性', score: 92, weight: 0.15 },
-    ],
-    overallScore: 88.0,
-    level: 'A级',
-    assessor: '管理员',
-    status: '已完成',
-    completedDate: '2024-01-30',
-  },
-];
 
 const levelColors: Record<string, { bg: string; color: string }> = {
   'A级': { bg: 'rgba(82, 196, 26, 0.1)', color: colors.success },
@@ -105,6 +32,40 @@ const statusColors: Record<string, { bg: string; color: string; icon: any }> = {
 };
 
 export default function AssessmentsPage() {
+  const [assessments, setAssessments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const res = await api.assessments.listAssessments({ page, limit: 10 });
+      const mappedData = res.data.map((assessment: any, index: number) => ({
+        key: assessment.id || String(index),
+        id: assessment.id,
+        partner: assessment.partner?.name || '-',
+        partnerInitial: (assessment.partner?.name || 'A').charAt(0),
+        period: assessment.cycle || '-',
+        indicators: assessment.indicators || [],
+        overallScore: assessment.totalScore || assessment.overallScore || 0,
+        level: assessment.level || '-',
+        assessor: assessment.assessor || '管理员',
+        status: assessment.status || '进行中',
+        completedDate: assessment.completedDate || '-',
+      }));
+      setAssessments(mappedData);
+      setTotal(res.meta?.total || res.data.length);
+    } catch (err: any) {
+      message.error(err.message || '获取评估列表失败');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [page]);
   const columns = [
     {
       title: '合作伙伴',
@@ -284,7 +245,7 @@ export default function AssessmentsPage() {
           { label: 'A级合作伙伴', value: assessments.filter(a => a.level === 'A级').length, color: colors.success },
           { label: 'B级合作伙伴', value: assessments.filter(a => a.level === 'B级').length, color: colors.primary },
           { label: '进行中评估', value: assessments.filter(a => a.status === '进行中').length, color: colors.warning },
-          { label: '平均评分', value: (assessments.reduce((sum, a) => sum + a.overallScore, 0) / assessments.length).toFixed(1), color: '#722ed1' },
+          { label: '平均评分', value: assessments.length > 0 ? (assessments.reduce((sum, a) => sum + a.overallScore, 0) / assessments.length).toFixed(1) : '0', color: '#722ed1' },
         ].map((stat, i) => (
           <div
             key={i}
@@ -365,10 +326,14 @@ export default function AssessmentsPage() {
         <AntdTable
           columns={columns}
           dataSource={assessments}
+          loading={loading}
           pagination={{
+            current: page,
             pageSize: 10,
+            total,
             showSizeChanger: true,
             showTotal: (total: number) => `共 ${total} 条`,
+            onChange: (p) => setPage(p),
           }}
         />
       </div>

@@ -1,6 +1,7 @@
 'use client';
 
-import { Table, Button, Tag, Progress, Tooltip, Avatar } from 'antd';
+import { useEffect, useState } from 'react';
+import { Table, Button, Tag, Progress, Tooltip, Avatar, message } from 'antd';
 import {
   PlusOutlined,
   CalendarOutlined,
@@ -9,6 +10,7 @@ import {
   FileTextOutlined,
 } from '@ant-design/icons';
 import { colors } from '@/lib/theme';
+import { api } from '@/lib/api';
 
 const AntdTable = Table as any;
 const AntdButton = Button as any;
@@ -16,61 +18,6 @@ const AntdTag = Tag as any;
 const AntdProgress = Progress as any;
 const AntdTooltip = Tooltip as any;
 const AntdAvatar = Avatar as any;
-
-const tasks = [
-  {
-    key: '1',
-    title: '订单系统微服务升级',
-    description: '对现有订单系统进行微服务架构升级，提升系统性能和可用性',
-    partner: '华钦科技',
-    partnerColor: colors.cardColors[0].gradient,
-    developer: ['张三', '李四'],
-    startDate: '2024-01-15',
-    endDate: '2024-02-15',
-    priority: '高',
-    status: '进行中',
-    progress: 75,
-  },
-  {
-    key: '2',
-    title: '移动端UI优化',
-    description: '优化APP界面交互体验，提升用户满意度',
-    partner: '博雅软件',
-    partnerColor: colors.cardColors[1].gradient,
-    developer: ['王五'],
-    startDate: '2024-02-01',
-    endDate: '2024-02-20',
-    priority: '中',
-    status: '进行中',
-    progress: 45,
-  },
-  {
-    key: '3',
-    title: '数据报表功能开发',
-    description: '开发季度数据统计报表，支持多维度数据分析',
-    partner: '创新科技',
-    partnerColor: colors.cardColors[2].gradient,
-    developer: ['赵六', '钱七'],
-    startDate: '2024-01-01',
-    endDate: '2024-01-31',
-    priority: '低',
-    status: '已完成',
-    progress: 100,
-  },
-  {
-    key: '4',
-    title: 'API接口重构',
-    description: '重构现有API接口，优化数据结构',
-    partner: '未来数字',
-    partnerColor: colors.cardColors[3].gradient,
-    developer: ['孙八'],
-    startDate: '2024-02-10',
-    endDate: '2024-03-10',
-    priority: '高',
-    status: '待分配',
-    progress: 0,
-  },
-];
 
 const priorityColors: Record<string, { bg: string; color: string }> = {
   '高': { bg: 'rgba(255, 77, 79, 0.1)', color: colors.error },
@@ -86,6 +33,41 @@ const statusColors: Record<string, { bg: string; color: string }> = {
 };
 
 export default function TasksPage() {
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const res = await api.tasks.list({ page, limit: 10 });
+      const mappedData = res.data.map((task: any, index: number) => ({
+        key: task.id || String(index),
+        id: task.id,
+        title: task.name,
+        description: task.description,
+        partner: task.partner?.name || '-',
+        partnerColor: colors.cardColors[index % 6].gradient,
+        developer: task.assignments?.map((a: any) => a.developer?.name || a.developerName || '未知') || [],
+        startDate: task.startDate,
+        endDate: task.endDate,
+        priority: task.priority,
+        status: task.status,
+        progress: task.progress || 0,
+      }));
+      setTasks(mappedData);
+      setTotal(res.meta?.total || res.data.length);
+    } catch (err: any) {
+      message.error(err.message || '获取任务列表失败');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [page]);
   const columns = [
     {
       title: '任务信息',
@@ -269,7 +251,7 @@ export default function TasksPage() {
       {/* Stats Cards */}
       <div style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
         {[
-          { label: '全部任务', value: tasks.length, color: colors.primary },
+          { label: '全部任务', value: total, color: colors.primary },
           { label: '进行中', value: tasks.filter(t => t.status === '进行中').length, color: colors.success },
           { label: '待验收', value: tasks.filter(t => t.status === '待验收').length, color: colors.warning },
           { label: '已完成', value: tasks.filter(t => t.status === '已完成').length, color: '#722ed1' },
@@ -362,10 +344,14 @@ export default function TasksPage() {
         <AntdTable
           columns={columns}
           dataSource={tasks}
+          loading={loading}
           pagination={{
+            current: page,
             pageSize: 10,
+            total,
             showSizeChanger: true,
             showTotal: (total: number) => `共 ${total} 条`,
+            onChange: (p) => setPage(p),
           }}
         />
       </div>

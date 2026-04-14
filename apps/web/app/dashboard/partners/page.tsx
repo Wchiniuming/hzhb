@@ -1,6 +1,7 @@
 'use client';
 
-import { Table, Button, Tag, Progress, Row, Col } from 'antd';
+import { useEffect, useState } from 'react';
+import { Table, Button, Tag, Progress, Row, Col, message } from 'antd';
 import {
   PlusOutlined,
   MailOutlined,
@@ -12,70 +13,12 @@ import {
   AppstoreOutlined,
 } from '@ant-design/icons';
 import { colors } from '@/lib/theme';
+import { api } from '@/lib/api';
 
 const AntdTable = Table as any;
 const AntdButton = Button as any;
 const AntdTag = Tag as any;
 const AntdProgress = Progress as any;
-
-const partners = [
-  {
-    key: '1',
-    name: '华钦科技',
-    contact: '王经理',
-    email: 'contact@huaqin.com',
-    phone: '400-123-4567',
-    address: '上海市浦东新区张江高科技园区',
-    developerCount: 32,
-    taskCount: 15,
-    completedTaskCount: 10,
-    score: 92,
-    level: 'A级',
-    status: '合作中',
-  },
-  {
-    key: '2',
-    name: '博雅软件',
-    contact: '赵经理',
-    email: 'contact@boya.com',
-    phone: '400-234-5678',
-    address: '北京市海淀区中关村软件园',
-    developerCount: 28,
-    taskCount: 12,
-    completedTaskCount: 8,
-    score: 85,
-    level: 'B级',
-    status: '合作中',
-  },
-  {
-    key: '3',
-    name: '创新科技',
-    contact: '李经理',
-    email: 'contact@cxkj.com',
-    phone: '400-345-6789',
-    address: '深圳市南山区科技园',
-    developerCount: 25,
-    taskCount: 10,
-    completedTaskCount: 6,
-    score: 78,
-    level: 'B级',
-    status: '合作中',
-  },
-  {
-    key: '4',
-    name: '未来数字',
-    contact: '孙经理',
-    email: 'contact@wlsz.com',
-    phone: '400-456-7890',
-    address: '杭州市滨江区海创基地',
-    developerCount: 20,
-    taskCount: 8,
-    completedTaskCount: 5,
-    score: 88,
-    level: 'A级',
-    status: '合作中',
-  },
-];
 
 const levelColors: Record<string, { bg: string; color: string }> = {
   'A级': { bg: 'rgba(82, 196, 26, 0.1)', color: colors.success },
@@ -84,6 +27,42 @@ const levelColors: Record<string, { bg: string; color: string }> = {
 };
 
 export default function PartnersPage() {
+  const [partners, setPartners] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const res = await api.partners.list({ page, limit: 10 });
+      const mappedData = res.data.map((partner: any, index: number) => ({
+        key: partner.id || String(index),
+        id: partner.id,
+        name: partner.name,
+        contact: partner.contactPerson || '-',
+        email: partner.email || '-',
+        phone: partner.phone || '-',
+        address: partner.address || '-',
+        developerCount: partner.developerCount || 0,
+        taskCount: partner.taskCount || 0,
+        completedTaskCount: partner.completedTaskCount || 0,
+        score: partner.score || 0,
+        level: partner.level || '-',
+        status: partner.status || '合作中',
+      }));
+      setPartners(mappedData);
+      setTotal(res.meta?.total || res.data.length);
+    } catch (err: any) {
+      message.error(err.message || '获取合作伙伴列表失败');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [page]);
   const columns = [
     {
       title: '合作伙伴',
@@ -248,10 +227,10 @@ export default function PartnersPage() {
       {/* Stats Cards */}
       <Row gutter={16} style={{ marginBottom: 24 }}>
         {[
-          { label: '合作伙伴总数', value: partners.length, icon: AppstoreOutlined, gradient: colors.cardColors[0].gradient },
+          { label: '合作伙伴总数', value: total, icon: AppstoreOutlined, gradient: colors.cardColors[0].gradient },
           { label: 'A级合作伙伴', value: partners.filter(p => p.level === 'A级').length, icon: TeamOutlined, gradient: colors.cardColors[1].gradient },
           { label: '开发人员总数', value: partners.reduce((sum, p) => sum + p.developerCount, 0), icon: TeamOutlined, gradient: colors.cardColors[2].gradient },
-          { label: '平均评分', value: Math.round(partners.reduce((sum, p) => sum + p.score, 0) / partners.length), icon: TeamOutlined, gradient: colors.cardColors[3].gradient },
+          { label: '平均评分', value: partners.length > 0 ? Math.round(partners.reduce((sum, p) => sum + p.score, 0) / partners.length) : 0, icon: TeamOutlined, gradient: colors.cardColors[3].gradient },
         ].map((stat, i) => (
           <Col xs={24} sm={12} lg={6} key={i}>
             <div
@@ -327,10 +306,14 @@ export default function PartnersPage() {
         <AntdTable
           columns={columns}
           dataSource={partners}
+          loading={loading}
           pagination={{
+            current: page,
             pageSize: 10,
+            total,
             showSizeChanger: true,
             showTotal: (total: number) => `共 ${total} 条`,
+            onChange: (p) => setPage(p),
           }}
         />
       </div>

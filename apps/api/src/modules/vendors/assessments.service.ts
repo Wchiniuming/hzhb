@@ -193,4 +193,15 @@ export class AssessmentsService {
       data: { status: 'REJECTED', approvedBy, approvedAt: new Date(), comments },
     });
   }
+
+  async getStats() {
+    const [totalPlans, activePlans, totalAssessments, completedAssessments, avgScore] = await Promise.all([
+      this.prisma.assessmentPlan.count(),
+      this.prisma.assessmentPlan.count({ where: { status: { in: ['PUBLISHED', 'IN_PROGRESS'] } } }),
+      this.prisma.assessment.count(),
+      this.prisma.assessment.count({ where: { status: 'COMPLETED' } }),
+      this.prisma.assessment.aggregate({ where: { overallScore: { not: null } }, _avg: { overallScore: true } }),
+    ]);
+    return { totalPlans, activePlans, totalAssessments, completedAssessments, avgScore: avgScore._avg.overallScore || 0 };
+  }
 }

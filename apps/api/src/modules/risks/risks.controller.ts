@@ -45,6 +45,11 @@ export class RisksController {
     return this.risksService.findAllRisks(page, limit, typeId, level);
   }
 
+  @Get('stats')
+  async getStats() {
+    return this.risksService.getStats();
+  }
+
   @Get(':id')
   async findOneRisk(@Param('id', ParseUUIDPipe) id: string) {
     return this.risksService.findOneRisk(id);

@@ -154,4 +154,14 @@ export class ImprovementsService {
   async getAcceptance(planId: string) {
     return this.prisma.improvementAcceptance.findUnique({ where: { planId } });
   }
+
+  async getStats() {
+    const [total, byStatus, inProgress, completed] = await Promise.all([
+      this.prisma.improvementRequirement.count(),
+      this.prisma.improvementRequirement.groupBy({ by: ['status'], _count: true }),
+      this.prisma.improvementPlan.count({ where: { status: 'IN_PROGRESS' } }),
+      this.prisma.improvementRequirement.count({ where: { status: 'ACCEPTED' } }),
+    ]);
+    return { total, byStatus: byStatus.map(s => ({ status: s.status, count: s._count })), inProgress, completed };
+  }
 }

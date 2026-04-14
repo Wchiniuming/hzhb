@@ -1,10 +1,8 @@
 import {
   Controller, Get, Post, Put, Delete, Body, Param, Query,
-  HttpCode, HttpStatus, ParseUUIDPipe, DefaultValuePipe, ParseIntPipe,
+  HttpCode, HttpStatus, Patch,
 } from '@nestjs/common';
 import { DevelopersService } from './developers.service';
-import { CreateDeveloperDto, UpdateDeveloperDto, AddSkillDto, UpdateSkillDto, AddExperienceDto, AddCertificateDto } from './dto';
-import { CurrentUser } from '../../auth/current-user.decorator';
 
 @Controller('developers')
 export class DevelopersController {
@@ -12,100 +10,172 @@ export class DevelopersController {
 
   @Get()
   async findAll(
-    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
-    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+    @Query('page') page = '1',
+    @Query('pageSize') pageSize = '10',
+    @Query('search') search?: string,
     @Query('partnerId') partnerId?: string,
     @Query('status') status?: string,
   ) {
-    return this.developersService.findAll(page, limit, partnerId, status);
+    return this.developersService.findAll({
+      page: parseInt(page),
+      pageSize: parseInt(pageSize),
+      search,
+      partnerId,
+      status,
+    });
+  }
+
+  @Get('stats')
+  async getStats() {
+    return this.developersService.getStats();
+  }
+
+  @Get('skills')
+  async getAllSkills() {
+    return this.developersService.getAllSkills();
   }
 
   @Get(':id')
-  async findOne(@Param('id', ParseUUIDPipe) id: string) {
+  async findOne(@Param('id') id: string) {
     return this.developersService.findOne(id);
+  }
+
+  @Get(':id/details')
+  async getDetails(@Param('id') id: string) {
+    return this.developersService.getDetails(id);
   }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async create(@Body() createDeveloperDto: CreateDeveloperDto) {
+  async create(
+    @Body() createDeveloperDto: {
+      name: string;
+      partnerId: string;
+      gender?: string;
+      age?: number;
+      contact?: any;
+      status?: string;
+      skillIds?: string[];
+    }
+  ) {
     return this.developersService.create(createDeveloperDto);
   }
 
   @Put(':id')
-  async update(@Param('id', ParseUUIDPipe) id: string, @Body() updateDeveloperDto: UpdateDeveloperDto) {
+  async update(
+    @Param('id') id: string,
+    @Body() updateDeveloperDto: {
+      name?: string;
+      gender?: string;
+      age?: number;
+      contact?: any;
+      status?: string;
+    }
+  ) {
     return this.developersService.update(id, updateDeveloperDto);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async remove(@Param('id', ParseUUIDPipe) id: string) {
+  async remove(@Param('id') id: string) {
     return this.developersService.remove(id);
+  }
+
+  @Patch(':id/status')
+  async updateStatus(
+    @Param('id') id: string,
+    @Body() body: { status: string },
+  ) {
+    return this.developersService.updateStatus(id, body.status);
   }
 
   @Post(':id/skills')
   @HttpCode(HttpStatus.CREATED)
-  async addSkill(@Param('id', ParseUUIDPipe) id: string, @Body() addSkillDto: AddSkillDto) {
-    return this.developersService.addSkill(id, addSkillDto);
+  async addSkills(
+    @Param('id') id: string,
+    @Body() body: { skillIds: string[]; proficiency?: string },
+  ) {
+    return this.developersService.addSkills(id, body.skillIds, body.proficiency);
   }
 
-  @Put(':id/skills/:skillTagId')
-  async updateSkill(@Param('id', ParseUUIDPipe) id: string, @Param('skillTagId', ParseUUIDPipe) skillTagId: string, @Body() updateSkillDto: UpdateSkillDto) {
-    return this.developersService.updateSkill(id, skillTagId, updateSkillDto);
-  }
-
-  @Delete(':id/skills/:skillTagId')
+  @Delete(':id/skills/:skillId')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async removeSkill(@Param('id', ParseUUIDPipe) id: string, @Param('skillTagId', ParseUUIDPipe) skillTagId: string) {
-    return this.developersService.removeSkill(id, skillTagId);
+  async removeSkill(
+    @Param('id') id: string,
+    @Param('skillId') skillId: string,
+  ) {
+    return this.developersService.removeSkill(id, skillId);
   }
 
   @Post(':id/experiences')
   @HttpCode(HttpStatus.CREATED)
-  async addExperience(@Param('id', ParseUUIDPipe) id: string, @Body() addExperienceDto: AddExperienceDto) {
-    return this.developersService.addExperience(id, addExperienceDto);
+  async addExperience(
+    @Param('id') id: string,
+    @Body() experienceDto: {
+      projectName: string;
+      role?: string;
+      startDate: Date;
+      endDate?: Date;
+      description?: string;
+    }
+  ) {
+    return this.developersService.addExperience(id, experienceDto);
   }
 
-  @Put(':id/experiences/:experienceId')
-  async updateExperience(@Param('id', ParseUUIDPipe) id: string, @Param('experienceId', ParseUUIDPipe) experienceId: string, @Body() updateDto: AddExperienceDto) {
-    return this.developersService.updateExperience(id, experienceId, updateDto);
+  @Put(':id/experiences/:expId')
+  async updateExperience(
+    @Param('id') id: string,
+    @Param('expId') expId: string,
+    @Body() experienceDto: {
+      projectName?: string;
+      role?: string;
+      startDate?: Date;
+      endDate?: Date;
+      description?: string;
+    }
+  ) {
+    return this.developersService.updateExperience(id, expId, experienceDto);
   }
 
-  @Delete(':id/experiences/:experienceId')
+  @Delete(':id/experiences/:expId')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async removeExperience(@Param('id', ParseUUIDPipe) id: string, @Param('experienceId', ParseUUIDPipe) experienceId: string) {
-    return this.developersService.removeExperience(id, experienceId);
+  async removeExperience(
+    @Param('id') id: string,
+    @Param('expId') expId: string,
+  ) {
+    return this.developersService.removeExperience(id, expId);
   }
 
   @Post(':id/certificates')
   @HttpCode(HttpStatus.CREATED)
-  async addCertificate(@Param('id', ParseUUIDPipe) id: string, @Body() addCertificateDto: AddCertificateDto) {
-    return this.developersService.addCertificate(id, addCertificateDto);
+  async addCertificate(
+    @Param('id') id: string,
+    @Body() certificateDto: {
+      name: string;
+      issuingBody?: string;
+      issueDate: Date;
+      expireDate?: Date;
+      attachmentId?: string;
+    }
+  ) {
+    return this.developersService.addCertificate(id, certificateDto);
   }
 
-  @Delete(':id/certificates/:certificateId')
+  @Delete(':id/certificates/:certId')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async removeCertificate(@Param('id', ParseUUIDPipe) id: string, @Param('certificateId', ParseUUIDPipe) certificateId: string) {
-    return this.developersService.removeCertificate(id, certificateId);
+  async removeCertificate(
+    @Param('id') id: string,
+    @Param('certId') certId: string,
+  ) {
+    return this.developersService.removeCertificate(id, certId);
   }
 
-  @Post(':id/submit')
-  @HttpCode(HttpStatus.CREATED)
-  async submitForApproval(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
-    return this.developersService.submitForApproval(id, user.id);
-  }
-
-  @Post(':id/approvals/:approvalId/approve')
-  async approve(@Param('id', ParseUUIDPipe) id: string, @Param('approvalId', ParseUUIDPipe) approvalId: string, @Body() body: { comments?: string }, @CurrentUser() user: any) {
-    return this.developersService.approve(approvalId, user.id, body.comments);
-  }
-
-  @Post(':id/approvals/:approvalId/reject')
-  async reject(@Param('id', ParseUUIDPipe) id: string, @Param('approvalId', ParseUUIDPipe) approvalId: string, @Body() body: { comments: string }, @CurrentUser() user: any) {
-    return this.developersService.reject(approvalId, user.id, body.comments);
-  }
-
-  @Get(':id/approvals')
-  async getApprovals(@Param('id', ParseUUIDPipe) id: string) {
-    return this.developersService.getApprovals(id);
+  @Post(':id/approve')
+  @HttpCode(HttpStatus.OK)
+  async approve(
+    @Param('id') id: string,
+    @Body() body: { status: string; comments?: string },
+  ) {
+    return this.developersService.approve(id, body.status, body.comments);
   }
 }

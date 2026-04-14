@@ -3,6 +3,8 @@ import {
   HttpCode, HttpStatus, ParseUUIDPipe, DefaultValuePipe, ParseIntPipe,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
+import { CurrentUser } from '../../auth/current-user.decorator';
+import * as bcrypt from 'bcrypt';
 
 @Controller('users')
 export class UsersController {
@@ -11,40 +13,90 @@ export class UsersController {
   @Get()
   async findAll(
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
-    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+    @Query('pageSize', new DefaultValuePipe(10), ParseIntPipe) pageSize: number,
     @Query('search') search?: string,
+    @Query('roleId') roleId?: string,
   ) {
-    return this.usersService.findAll(page, limit, search);
+    return this.usersService.findAll({ page, pageSize, search, roleId });
+  }
+
+  @Get('stats')
+  async getStats() {
+    return this.usersService.getStats();
+  }
+
+  @Get('me')
+  async getCurrentUser(@CurrentUser() user: any) {
+    return this.usersService.findOne(user.userId);
   }
 
   @Get(':id')
-  async findOne(@Param('id', ParseUUIDPipe) id: string) {
+  async findOne(@Param('id') id: string) {
     return this.usersService.findOne(id);
   }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async create(@Body() createUserDto: any) {
+  async create(
+    @Body() createUserDto: {
+      username: string;
+      password: string;
+      name?: string;
+      email?: string;
+      phone?: string;
+      roleId: string;
+    }
+  ) {
     return this.usersService.create(createUserDto);
   }
 
   @Put(':id')
-  async update(@Param('id', ParseUUIDPipe) id: string, @Body() updateUserDto: any) {
+  async update(
+    @Param('id') id: string,
+    @Body() updateUserDto: {
+      name?: string;
+      email?: string;
+      phone?: string;
+      roleId?: string;
+      enabled?: boolean;
+    }
+  ) {
     return this.usersService.update(id, updateUserDto);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async remove(@Param('id', ParseUUIDPipe) id: string) {
+  async remove(@Param('id') id: string) {
     return this.usersService.remove(id);
   }
 
-  @Post(':id/password')
+  @Put(':id/password')
   @HttpCode(HttpStatus.OK)
   async changePassword(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() changePasswordDto: any,
+    @Param('id') id: string,
+    @Body() changePasswordDto: { oldPassword: string; newPassword: string },
   ) {
     return this.usersService.changePassword(id, changePasswordDto);
+  }
+
+  @Put('profile')
+  async updateProfile(
+    @CurrentUser() user: any,
+    @Body() updateProfileDto: { name?: string; email?: string; phone?: string },
+  ) {
+    return this.usersService.updateProfile(user.userId, updateProfileDto);
+  }
+
+  @Put(':id/status')
+  async updateStatus(
+    @Param('id') id: string,
+    @Body() body: { enabled: boolean },
+  ) {
+    return this.usersService.updateStatus(id, body.enabled);
+  }
+
+  @Get(':id/permissions')
+  async getPermissions(@Param('id') id: string) {
+    return this.usersService.getPermissions(id);
   }
 }

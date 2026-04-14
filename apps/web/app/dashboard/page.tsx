@@ -1,6 +1,7 @@
 'use client';
 
-import { Row, Col, Progress } from 'antd';
+import { useEffect, useState } from 'react';
+import { Row, Col } from 'antd';
 import {
   TeamOutlined,
   FileTextOutlined,
@@ -12,73 +13,74 @@ import {
   ThunderboltOutlined,
 } from '@ant-design/icons';
 import { colors } from '@/lib/theme';
+import api from '@/lib/api';
 
-const AntdProgress = Progress as any;
-
-const statCards = [
-  {
-    title: '开发人员总数',
-    value: 128,
-    change: '+12%',
-    trend: 'up',
-    icon: TeamOutlined,
-    gradient: colors.cardColors[0].gradient,
-    iconBg: 'rgba(102, 126, 234, 0.15)',
-    iconColor: '#667eea',
-  },
-  {
-    title: '进行中任务',
-    value: 56,
-    change: '+8%',
-    trend: 'up',
-    icon: FileTextOutlined,
-    gradient: colors.cardColors[1].gradient,
-    iconBg: 'rgba(17, 153, 142, 0.15)',
-    iconColor: '#11998e',
-  },
-  {
-    title: '已完成评估',
-    value: 23,
-    change: '-3%',
-    trend: 'down',
-    icon: CheckCircleOutlined,
-    gradient: colors.cardColors[2].gradient,
-    iconBg: 'rgba(240, 147, 251, 0.15)',
-    iconColor: '#f093fb',
-  },
-  {
-    title: '风险项总数',
-    value: 12,
-    change: '-5%',
-    trend: 'down',
-    icon: WarningOutlined,
-    gradient: colors.cardColors[3].gradient,
-    iconBg: 'rgba(79, 172, 254, 0.15)',
-    iconColor: '#4facfe',
-  },
-];
-
-const recentTasks = [
-  { name: '订单系统微服务升级', partner: '华钦科技', progress: 75, status: '进行中' },
-  { name: '移动端UI优化', partner: '博雅软件', progress: 45, status: '进行中' },
-  { name: '数据报表功能开发', partner: '华钦科技', progress: 100, status: '已完成' },
-  { name: 'API接口重构', partner: '创新科技', progress: 30, status: '进行中' },
-];
-
-const partners = [
-  { name: '华钦科技', score: 92, level: 'A级' },
-  { name: '博雅软件', score: 85, level: 'B级' },
-  { name: '创新科技', score: 78, level: 'B级' },
-  { name: '未来数字', score: 88, level: 'A级' },
-];
-
-const riskItems = [
-  { name: '人员流动风险', level: '高', count: 3 },
-  { name: '技术方案风险', level: '中', count: 5 },
-  { name: '进度延期风险', level: '低', count: 8 },
-];
+interface DashboardStats {
+  developers: { total: number };
+  tasks: { total: number; delayed: number };
+  assessments: { totalAssessments: number; completedAssessments: number };
+  risks: { total: number };
+}
 
 export default function DashboardPage() {
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([
+      api.developers.getStats(),
+      api.tasks.getStats(),
+      api.assessments.getStats(),
+      api.risks.getStats(),
+    ]).then(([developers, tasks, assessments, risks]) => {
+      setStats({ developers, tasks, assessments, risks });
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, []);
+
+  if (loading || !stats) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 400 }}>
+        <div style={{ color: colors.text.secondary }}>加载中...</div>
+      </div>
+    );
+  }
+
+  const statCards = [
+    {
+      title: '开发人员总数',
+      value: stats.developers.total,
+      trend: 'up' as const,
+      icon: TeamOutlined,
+      iconBg: 'rgba(102, 126, 234, 0.15)',
+      iconColor: '#667eea',
+    },
+    {
+      title: '进行中任务',
+      value: stats.tasks.total,
+      trend: 'up' as const,
+      icon: FileTextOutlined,
+      iconBg: 'rgba(17, 153, 142, 0.15)',
+      iconColor: '#11998e',
+    },
+    {
+      title: '已完成评估',
+      value: stats.assessments.completedAssessments,
+      trend: 'up' as const,
+      icon: CheckCircleOutlined,
+      iconBg: 'rgba(240, 147, 251, 0.15)',
+      iconColor: '#f093fb',
+    },
+    {
+      title: '风险项总数',
+      value: stats.risks.total,
+      trend: 'down' as const,
+      icon: WarningOutlined,
+      iconBg: 'rgba(79, 172, 254, 0.15)',
+      iconColor: '#4facfe',
+    },
+  ];
+
   return (
     <div>
       {/* Page Header */}
@@ -152,7 +154,7 @@ export default function DashboardPage() {
                   }}
                 >
                   {stat.trend === 'up' ? <ArrowUpOutlined /> : <RiseOutlined style={{ transform: 'rotate(180deg)' }} />}
-                  {stat.change}
+                  {stat.trend === 'up' ? '增长' : '下降'}
                 </div>
               </div>
               <div style={{ marginTop: 16 }}>
@@ -186,7 +188,7 @@ export default function DashboardPage() {
                   进行中的任务
                 </h3>
                 <p style={{ margin: 0, color: colors.text.secondary, fontSize: 13, marginTop: 2 }}>
-                  共 {recentTasks.filter(t => t.status === '进行中').length} 个任务进行中
+                  共 {stats.tasks.delayed} 个任务延期中
                 </p>
               </div>
               <div
@@ -197,56 +199,27 @@ export default function DashboardPage() {
                   color: colors.primary,
                   fontSize: 13,
                   fontWeight: 500,
+                  cursor: 'pointer',
                 }}
+                onClick={() => window.location.href = '/dashboard/tasks'}
               >
                 查看全部
               </div>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {recentTasks.map((task, index) => (
-                <div
-                  key={index}
-                  style={{
-                    padding: 16,
-                    borderRadius: 12,
-                    background: colors.background.light,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    transition: 'all 0.2s',
-                  }}
-                >
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 500, color: colors.text.primary, marginBottom: 4 }}>
-                      {task.name}
-                    </div>
-                    <div style={{ fontSize: 13, color: colors.text.secondary }}>
-                      {task.partner}
-                    </div>
+              {stats.tasks.total > 0 ? (
+                <div style={{ padding: 16, borderRadius: 12, background: colors.background.light }}>
+                  <div style={{ fontWeight: 500, color: colors.text.primary, marginBottom: 4 }}>
+                    任务总数: {stats.tasks.total}
                   </div>
-                  <div style={{ width: 200, marginRight: 16 }}>
-                    <AntdProgress
-                      percent={task.progress}
-                      size="small"
-                      strokeColor={task.progress === 100 ? colors.success : colors.primary}
-                      showInfo={false}
-                    />
-                  </div>
-                  <div
-                    style={{
-                      padding: '4px 12px',
-                      borderRadius: 6,
-                      fontSize: 12,
-                      fontWeight: 500,
-                      background: task.status === '已完成' ? 'rgba(82, 196, 26, 0.1)' : 'rgba(24, 144, 255, 0.1)',
-                      color: task.status === '已完成' ? colors.success : colors.primary,
-                    }}
-                  >
-                    {task.status}
+                  <div style={{ fontSize: 13, color: colors.text.secondary }}>
+                    延期任务: {stats.tasks.delayed}
                   </div>
                 </div>
-              ))}
+              ) : (
+                <div style={{ padding: 16, color: colors.text.secondary, textAlign: 'center' }}>暂无任务数据</div>
+              )}
             </div>
           </div>
         </Col>
@@ -275,52 +248,14 @@ export default function DashboardPage() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {partners.map((partner, index) => (
-                <div
-                  key={index}
-                  style={{
-                    padding: 14,
-                    borderRadius: 12,
-                    background: colors.background.light,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div
-                      style={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: 10,
-                        background: colors.cardColors[index].gradient,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#fff',
-                        fontWeight: 600,
-                        fontSize: 14,
-                      }}
-                    >
-                      {partner.name.charAt(0)}
-                    </div>
-                    <div>
-                      <div style={{ fontWeight: 500, color: colors.text.primary, fontSize: 14 }}>
-                        {partner.name}
-                      </div>
-                      <div style={{ fontSize: 12, color: colors.text.secondary }}>
-                        {partner.level}级合作伙伴
-                      </div>
-                    </div>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: 20, fontWeight: 700, color: colors.text.primary }}>
-                      {partner.score}
-                    </div>
-                    <div style={{ fontSize: 12, color: colors.text.secondary }}>综合评分</div>
-                  </div>
+              <div style={{ padding: 16, borderRadius: 12, background: colors.background.light }}>
+                <div style={{ fontWeight: 500, color: colors.text.primary, marginBottom: 4 }}>
+                  评估总数: {stats.assessments.totalAssessments}
                 </div>
-              ))}
+                <div style={{ fontSize: 13, color: colors.text.secondary }}>
+                  已完成: {stats.assessments.completedAssessments}
+                </div>
+              </div>
             </div>
           </div>
         </Col>
@@ -348,7 +283,7 @@ export default function DashboardPage() {
             </div>
 
             <Row gutter={16}>
-              {riskItems.map((risk, index) => (
+              {stats.risks.byLevel ? stats.risks.byLevel.map((level: any, index: number) => (
                 <Col span={8} key={index}>
                   <div
                     style={{
@@ -368,25 +303,25 @@ export default function DashboardPage() {
                         alignItems: 'center',
                         justifyContent: 'center',
                         background:
-                          risk.level === '高'
+                          level.level === 'HIGH'
                             ? 'rgba(255, 77, 79, 0.1)'
-                            : risk.level === '中'
+                            : level.level === 'MEDIUM'
                             ? 'rgba(250, 173, 20, 0.1)'
                             : 'rgba(82, 196, 26, 0.1)',
                         color:
-                          risk.level === '高'
+                          level.level === 'HIGH'
                             ? colors.error
-                            : risk.level === '中'
+                            : level.level === 'MEDIUM'
                             ? colors.warning
                             : colors.success,
                         fontSize: 20,
                         fontWeight: 700,
                       }}
                     >
-                      {risk.count}
+                      {level.count}
                     </div>
                     <div style={{ fontSize: 14, color: colors.text.secondary, marginBottom: 4 }}>
-                      {risk.name}
+                      {level.level === 'HIGH' ? '高风险' : level.level === 'MEDIUM' ? '中风险' : '低风险'}
                     </div>
                     <div
                       style={{
@@ -396,24 +331,30 @@ export default function DashboardPage() {
                         fontSize: 11,
                         fontWeight: 500,
                         background:
-                          risk.level === '高'
+                          level.level === 'HIGH'
                             ? 'rgba(255, 77, 79, 0.1)'
-                            : risk.level === '中'
+                            : level.level === 'MEDIUM'
                             ? 'rgba(250, 173, 20, 0.1)'
                             : 'rgba(82, 196, 26, 0.1)',
                         color:
-                          risk.level === '高'
+                          level.level === 'HIGH'
                             ? colors.error
-                            : risk.level === '中'
+                            : level.level === 'MEDIUM'
                             ? colors.warning
                             : colors.success,
                       }}
                     >
-                      {risk.level}风险
+                      {level.level}级
                     </div>
                   </div>
                 </Col>
-              ))}
+              )) : (
+                <Col span={24}>
+                  <div style={{ padding: 20, textAlign: 'center', color: colors.text.secondary }}>
+                    共 {stats.risks.total} 个风险项
+                  </div>
+                </Col>
+              )}
             </Row>
           </div>
         </Col>
@@ -433,9 +374,14 @@ export default function DashboardPage() {
               快捷操作
             </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {['新增开发人员', '创建任务', '发起评估', '添加风险项'].map((action, index) => (
+              {[
+                { label: '新增开发人员', href: '/dashboard/developers' },
+                { label: '创建任务', href: '/dashboard/tasks' },
+                { label: '发起评估', href: '/dashboard/assessments' },
+                { label: '添加风险项', href: '/dashboard/risks' },
+              ].map((action) => (
                 <div
-                  key={index}
+                  key={action.label}
                   style={{
                     padding: '12px 16px',
                     borderRadius: 10,
@@ -445,6 +391,7 @@ export default function DashboardPage() {
                     transition: 'all 0.2s',
                     fontWeight: 500,
                   }}
+                  onClick={() => window.location.href = action.href}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.background = 'rgba(255,255,255,0.25)';
                   }}
@@ -452,7 +399,7 @@ export default function DashboardPage() {
                     e.currentTarget.style.background = 'rgba(255,255,255,0.15)';
                   }}
                 >
-                  {action}
+                  {action.label}
                 </div>
               ))}
             </div>

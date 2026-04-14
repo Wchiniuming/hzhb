@@ -203,4 +203,27 @@ export class TasksService {
   async getDeliverables(taskId: string) {
     return this.prisma.taskDeliverable.findMany({ where: { taskId }, orderBy: { submissionTime: 'desc' } });
   }
+
+  async getStats() {
+    const [total, byStatus, byPriority, delayed, recentlyCompleted] = await Promise.all([
+      this.prisma.task.count(),
+      this.prisma.task.groupBy({ by: ['status'], _count: true }),
+      this.prisma.task.groupBy({ by: ['priority'], _count: true }),
+      this.prisma.task.count({ where: { status: 'DELAYED' } }),
+      this.prisma.task.findMany({
+        where: { status: 'ACCEPTED' },
+        orderBy: { updatedAt: 'desc' },
+        take: 5,
+        select: { id: true, name: true, updatedAt: true },
+      }),
+    ]);
+
+    return {
+      total,
+      byStatus: byStatus.map(s => ({ status: s.status, count: s._count })),
+      byPriority: byPriority.map(p => ({ priority: p.priority, count: p._count })),
+      delayed,
+      recentlyCompleted,
+    };
+  }
 }

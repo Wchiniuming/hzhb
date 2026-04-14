@@ -1,6 +1,7 @@
 'use client';
 
-import { Table, Button, Tag, Avatar, Tooltip } from 'antd';
+import { useEffect, useState } from 'react';
+import { Table, Button, Tag, Avatar, Tooltip, message } from 'antd';
 import {
   PlusOutlined,
   WarningOutlined,
@@ -12,75 +13,13 @@ import {
   SafetyOutlined,
 } from '@ant-design/icons';
 import { colors } from '@/lib/theme';
+import { api } from '@/lib/api';
 
 const AntdTable = Table as any;
 const AntdButton = Button as any;
 const AntdTag = Tag as any;
 const AntdAvatar = Avatar as any;
 const AntdTooltip = Tooltip as any;
-
-const risks = [
-  {
-    key: '1',
-    title: '核心开发人员离职风险',
-    description: '核心开发人员提出离职，可能导致项目进度受阻',
-    category: '人员风险',
-    level: '高',
-    impact: '影响项目进度，可能导致延期',
-    triggerConditions: '核心开发人员提出离职',
-    dispositionMeasures: '建立AB角机制，定期备份项目文档',
-    status: '监控中',
-    discoverDate: '2024-01-15',
-    owner: '王经理',
-    ownerInitial: '王',
-    partner: '华钦科技',
-  },
-  {
-    key: '2',
-    title: '技术方案架构缺陷',
-    description: '架构设计存在缺陷或性能瓶颈，影响系统可扩展性',
-    category: '技术风险',
-    level: '中',
-    impact: '影响系统性能和可扩展性',
-    triggerConditions: '架构设计评审发现问题',
-    dispositionMeasures: '技术方案评审，引入专家咨询',
-    status: '已处理',
-    discoverDate: '2024-01-10',
-    owner: '李经理',
-    ownerInitial: '李',
-    partner: '博雅软件',
-  },
-  {
-    key: '3',
-    title: '需求变更频繁',
-    description: '客户需求不明确，频繁变更导致项目范围蔓延',
-    category: '管理风险',
-    level: '中',
-    impact: '影响项目质量和进度',
-    triggerConditions: '需求评审会议提出变更',
-    dispositionMeasures: '需求确认机制，变更控制流程',
-    status: '处理中',
-    discoverDate: '2024-01-08',
-    owner: '赵经理',
-    ownerInitial: '赵',
-    partner: '创新科技',
-  },
-  {
-    key: '4',
-    title: '数据泄露风险',
-    description: '安全措施不到位，数据访问控制不严',
-    category: '安全风险',
-    level: '高',
-    impact: '造成数据安全事故，影响公司声誉',
-    triggerConditions: '安全审计发现问题',
-    dispositionMeasures: '安全审计，数据加密，权限控制',
-    status: '已处理',
-    discoverDate: '2024-01-05',
-    owner: '孙经理',
-    ownerInitial: '孙',
-    partner: '未来数字',
-  },
-];
 
 const levelConfig: Record<string, { bg: string; color: string; icon: any }> = {
   '高': { bg: 'rgba(255, 77, 79, 0.1)', color: colors.error, icon: ExclamationCircleOutlined },
@@ -105,6 +44,43 @@ const categoryIcons: Record<string, { bg: string; color: string }> = {
 };
 
 export default function RisksPage() {
+  const [risks, setRisks] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const res = await api.risks.list({ page, limit: 10 });
+      const mappedData = res.data.map((risk: any, index: number) => ({
+        key: risk.id || String(index),
+        id: risk.id,
+        title: risk.name,
+        description: risk.description,
+        category: risk.typeId || risk.category || '-',
+        level: risk.level || '中',
+        impact: risk.impact || '-',
+        triggerConditions: risk.triggerConditions || '-',
+        dispositionMeasures: risk.dispositionMeasures || '-',
+        status: risk.status || '监控中',
+        discoverDate: risk.discoverDate || risk.createdAt?.split('T')[0] || '-',
+        owner: risk.owner || '-',
+        ownerInitial: (risk.owner || 'A').charAt(0),
+        partner: risk.partner?.name || '-',
+      }));
+      setRisks(mappedData);
+      setTotal(res.meta?.total || res.data.length);
+    } catch (err: any) {
+      message.error(err.message || '获取风险列表失败');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [page]);
   const columns = [
     {
       title: '风险信息',
@@ -349,10 +325,14 @@ export default function RisksPage() {
         <AntdTable
           columns={columns}
           dataSource={risks}
+          loading={loading}
           pagination={{
+            current: page,
             pageSize: 10,
+            total,
             showSizeChanger: true,
             showTotal: (total: number) => `共 ${total} 条`,
+            onChange: (p) => setPage(p),
           }}
         />
       </div>

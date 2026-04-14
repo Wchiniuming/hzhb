@@ -1,9 +1,9 @@
 import {
   Controller, Get, Post, Put, Delete, Body, Param, Query,
-  HttpCode, HttpStatus, ParseUUIDPipe, DefaultValuePipe, ParseIntPipe,
+  HttpCode, HttpStatus, Patch, ParseIntPipe, DefaultValuePipe,
 } from '@nestjs/common';
 import { TasksService } from './tasks.service';
-import { CreateTaskDto, UpdateTaskDto, AssignDeveloperDto, UpdateAssignmentDto, UpdateProgressDto, CreateDelayRequestDto, SubmitDeliverableDto, AcceptDeliverableDto } from './dto';
+import { CreateTaskDto, UpdateTaskDto } from './dto';
 import { CurrentUser } from '../../auth/current-user.decorator';
 
 @Controller('tasks')
@@ -20,111 +20,92 @@ export class TasksController {
     return this.tasksService.findAll(page, limit, partnerId, status);
   }
 
+  @Get('stats')
+  async getStats() {
+    return this.tasksService.getStats();
+  }
+
   @Get(':id')
-  async findOne(@Param('id', ParseUUIDPipe) id: string) {
+  async findOne(@Param('id') id: string) {
     return this.tasksService.findOne(id);
   }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async create(@Body() createTaskDto: CreateTaskDto, @CurrentUser() user: any) {
-    return this.tasksService.create(createTaskDto, user.id);
+    return this.tasksService.create(createTaskDto, user?.id || 'system');
   }
 
   @Put(':id')
-  async update(@Param('id', ParseUUIDPipe) id: string, @Body() updateTaskDto: UpdateTaskDto) {
+  async update(@Param('id') id: string, @Body() updateTaskDto: UpdateTaskDto) {
     return this.tasksService.update(id, updateTaskDto);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async remove(@Param('id', ParseUUIDPipe) id: string) {
+  async remove(@Param('id') id: string) {
     return this.tasksService.remove(id);
+  }
+
+  @Patch(':id/status')
+  async updateStatus(@Param('id') id: string, @Body() body: { status: string }) {
+    return this.tasksService.update(id, { status: body.status } as UpdateTaskDto);
   }
 
   @Post(':id/assignments')
   @HttpCode(HttpStatus.CREATED)
-  async assignDeveloper(@Param('id', ParseUUIDPipe) id: string, @Body() assignDto: AssignDeveloperDto) {
-    return this.tasksService.assignDeveloper(id, assignDto);
+  async addAssignment(@Param('id') id: string, @Body() body: { developerId: string; role?: string; responsibilities?: string }) {
+    return this.tasksService.assignDeveloper(id, body);
   }
 
-  @Put(':id/assignments/:developerId')
-  async updateAssignment(@Param('id', ParseUUIDPipe) id: string, @Param('developerId', ParseUUIDPipe) developerId: string, @Body() updateDto: UpdateAssignmentDto) {
-    return this.tasksService.updateAssignment(id, developerId, updateDto);
-  }
-
-  @Delete(':id/assignments/:developerId')
+  @Delete(':id/assignments/:devId')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async removeAssignment(@Param('id', ParseUUIDPipe) id: string, @Param('developerId', ParseUUIDPipe) developerId: string) {
-    return this.tasksService.removeAssignment(id, developerId);
+  async removeAssignment(@Param('id') id: string, @Param('devId') devId: string) {
+    return this.tasksService.removeAssignment(id, devId);
   }
 
   @Post(':id/progress')
   @HttpCode(HttpStatus.CREATED)
-  async updateProgress(@Param('id', ParseUUIDPipe) id: string, @Body() body: { developerId: string; data: UpdateProgressDto }) {
-    return this.tasksService.updateProgress(id, body.developerId, body.data);
+  async addProgress(@Param('id') id: string, @Body() body: { developerId: string; status: string; details?: string }) {
+    return this.tasksService.updateProgress(id, body.developerId, body);
   }
 
   @Get(':id/progress')
-  async getProgress(@Param('id', ParseUUIDPipe) id: string) {
+  async getProgress(@Param('id') id: string) {
     return this.tasksService.getProgress(id);
   }
 
-  @Post(':id/delay-requests')
+  @Post(':id/delay')
   @HttpCode(HttpStatus.CREATED)
-  async createDelayRequest(@Param('id', ParseUUIDPipe) id: string, @Body() createDto: CreateDelayRequestDto) {
-    return this.tasksService.createDelayRequest(id, createDto);
+  async requestDelay(@Param('id') id: string, @Body() body: { reason: string; newEndDate: string }) {
+    return this.tasksService.createDelayRequest(id, body);
   }
 
-  @Get(':id/delay-requests')
-  async getDelayRequests(@Param('id', ParseUUIDPipe) id: string) {
-    return this.tasksService.getDelayRequests(id);
+  @Post(':id/delay/:delayId/approve')
+  @HttpCode(HttpStatus.OK)
+  async approveDelay(@Param('delayId') delayId: string, @Body() body: { comments?: string }, @CurrentUser() user: any) {
+    return this.tasksService.approveDelayRequest(delayId, user?.id || 'system', body.comments);
   }
 
-  @Post('delay-requests/:delayRequestId/approve')
-  async approveDelayRequest(@Param('delayRequestId', ParseUUIDPipe) delayRequestId: string, @Body() body: { comments?: string }, @CurrentUser() user: any) {
-    return this.tasksService.approveDelayRequest(delayRequestId, user.id, body.comments);
-  }
-
-  @Post('delay-requests/:delayRequestId/reject')
-  async rejectDelayRequest(@Param('delayRequestId', ParseUUIDPipe) delayRequestId: string, @Body() body: { comments: string }, @CurrentUser() user: any) {
-    return this.tasksService.rejectDelayRequest(delayRequestId, user.id, body.comments);
+  @Post(':id/delay/:delayId/reject')
+  @HttpCode(HttpStatus.OK)
+  async rejectDelay(@Param('delayId') delayId: string, @Body() body: { comments: string }, @CurrentUser() user: any) {
+    return this.tasksService.rejectDelayRequest(delayId, user?.id || 'system', body.comments);
   }
 
   @Post(':id/deliverables')
   @HttpCode(HttpStatus.CREATED)
-  async submitDeliverable(@Param('id', ParseUUIDPipe) id: string, @Body() body: { developerId: string; data: SubmitDeliverableDto }) {
-    return this.tasksService.submitDeliverable(id, body.developerId, body.data);
+  async submitDeliverable(@Param('id') id: string, @Body() body: { developerId: string; description?: string; attachmentIds?: string[] }) {
+    return this.tasksService.submitDeliverable(id, body.developerId, body);
   }
 
   @Get(':id/deliverables')
-  async getDeliverables(@Param('id', ParseUUIDPipe) id: string) {
+  async getDeliverables(@Param('id') id: string) {
     return this.tasksService.getDeliverables(id);
   }
 
-  @Post(':id/deliverables/:deliverableId/accept')
-  async acceptDeliverable(@Param('id', ParseUUIDPipe) id: string, @Param('deliverableId', ParseUUIDPipe) deliverableId: string, @Body() acceptDto: AcceptDeliverableDto, @CurrentUser() user: any) {
-    return this.tasksService.acceptDeliverable(id, deliverableId, user.id, acceptDto);
-  }
-
-  @Post(':id/submit')
-  @HttpCode(HttpStatus.CREATED)
-  async submitForApproval(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
-    return this.tasksService.submitForApproval(id, user.id);
-  }
-
-  @Get(':id/approvals')
-  async getApprovals(@Param('id', ParseUUIDPipe) id: string) {
-    return this.tasksService.getApprovals(id);
-  }
-
-  @Post(':id/approvals/:approvalId/approve')
-  async approve(@Param('id', ParseUUIDPipe) id: string, @Param('approvalId', ParseUUIDPipe) approvalId: string, @Body() body: { comments?: string }, @CurrentUser() user: any) {
-    return this.tasksService.approve(approvalId, user.id, body.comments);
-  }
-
-  @Post(':id/approvals/:approvalId/reject')
-  async reject(@Param('id', ParseUUIDPipe) id: string, @Param('approvalId', ParseUUIDPipe) approvalId: string, @Body() body: { comments: string }, @CurrentUser() user: any) {
-    return this.tasksService.reject(approvalId, user.id, body.comments);
+  @Get(':id/delay-requests')
+  async getDelayRequests(@Param('id') id: string) {
+    return this.tasksService.getDelayRequests(id);
   }
 }

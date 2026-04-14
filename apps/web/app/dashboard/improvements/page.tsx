@@ -1,6 +1,7 @@
 'use client';
 
-import { Table, Button, Tag, Progress, Avatar } from 'antd';
+import { useEffect, useState } from 'react';
+import { Table, Button, Tag, Progress, Avatar, message } from 'antd';
 import {
   PlusOutlined,
   CheckCircleOutlined,
@@ -12,67 +13,13 @@ import {
   WarningOutlined,
 } from '@ant-design/icons';
 import { colors } from '@/lib/theme';
+import { api } from '@/lib/api';
 
 const AntdTable = Table as any;
 const AntdButton = Button as any;
 const AntdTag = Tag as any;
 const AntdProgress = Progress as any;
 const AntdAvatar = Avatar as any;
-
-const improvements = [
-  {
-    key: '1',
-    title: '代码质量提升计划',
-    description: '引入代码审查机制，建立Code Review规范，提升整体代码质量',
-    origin: '评估触发',
-    partner: '华钦科技',
-    partnerInitial: '华',
-    priority: '高',
-    status: '进行中',
-    progress: 65,
-    deadline: '2024-03-31',
-    responsible: '技术总监',
-  },
-  {
-    key: '2',
-    title: '文档完善项目',
-    description: '完善技术文档、API文档和用户手册，提升文档覆盖率',
-    origin: '评估触发',
-    partner: '博雅软件',
-    partnerInitial: '博',
-    priority: '中',
-    status: '待验收',
-    progress: 100,
-    deadline: '2024-02-28',
-    responsible: '项目经理',
-  },
-  {
-    key: '3',
-    title: '响应速度优化',
-    description: '优化客户服务响应流程，缩短问题响应时间至2小时内',
-    origin: '任务延期',
-    partner: '创新科技',
-    partnerInitial: '创',
-    priority: '中',
-    status: '进行中',
-    progress: 40,
-    deadline: '2024-04-15',
-    responsible: '运营经理',
-  },
-  {
-    key: '4',
-    title: '人员培训计划',
-    description: '组织技术培训，提升团队整体技术水平',
-    origin: '风险触发',
-    partner: '未来数字',
-    partnerInitial: '未',
-    priority: '低',
-    status: '已完成',
-    progress: 100,
-    deadline: '2024-01-31',
-    responsible: 'HR经理',
-  },
-];
 
 const priorityColors: Record<string, { bg: string; color: string }> = {
   '高': { bg: 'rgba(255, 77, 79, 0.1)', color: colors.error },
@@ -93,6 +40,41 @@ const originColors: Record<string, { bg: string; color: string }> = {
 };
 
 export default function ImprovementsPage() {
+  const [improvements, setImprovements] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const res = await api.improvements.listRequirements({ page, limit: 10 });
+      const mappedData = res.data.map((req: any, index: number) => ({
+        key: req.id || String(index),
+        id: req.id,
+        title: req.title,
+        description: req.description,
+        origin: req.originType || '-',
+        partner: req.partner?.name || '-',
+        partnerInitial: (req.partner?.name || 'A').charAt(0),
+        priority: req.priority || '中',
+        status: req.status || '进行中',
+        progress: req.progress || 0,
+        deadline: req.targetDate || '-',
+        responsible: req.responsibleType || '-',
+      }));
+      setImprovements(mappedData);
+      setTotal(res.meta?.total || res.data.length);
+    } catch (err: any) {
+      message.error(err.message || '获取改进项列表失败');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [page]);
   const columns = [
     {
       title: '改进项',
@@ -281,7 +263,7 @@ export default function ImprovementsPage() {
       {/* Stats */}
       <div style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
         {[
-          { label: '全部改进项', value: improvements.length, color: colors.primary },
+          { label: '全部改进项', value: total, color: colors.primary },
           { label: '进行中', value: improvements.filter(i => i.status === '进行中').length, color: colors.info },
           { label: '待验收', value: improvements.filter(i => i.status === '待验收').length, color: colors.warning },
           { label: '已完成', value: improvements.filter(i => i.status === '已完成').length, color: colors.success },
@@ -366,10 +348,14 @@ export default function ImprovementsPage() {
         <AntdTable
           columns={columns}
           dataSource={improvements}
+          loading={loading}
           pagination={{
+            current: page,
             pageSize: 10,
+            total,
             showSizeChanger: true,
             showTotal: (total: number) => `共 ${total} 条`,
+            onChange: (p) => setPage(p),
           }}
         />
       </div>
