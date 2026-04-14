@@ -213,8 +213,8 @@ export default function PartnersPage() {
       width: 100,
       render: () => (
         <div style={{ display: 'flex', gap: 4 }}>
-          <AntdButton type="text" icon={<EyeOutlined />} size="small" />
-          <AntdButton type="text" icon={<EditOutlined />} size="small" />
+          <AntdButton type="text" icon={<EyeOutlined />} size="small" onClick={() => message.info('功能开发中')} />
+          <AntdButton type="text" icon={<EditOutlined />} size="small" onClick={() => message.info('功能开发中')} />
         </div>
       ),
     },
@@ -306,6 +306,7 @@ export default function PartnersPage() {
               background: `linear-gradient(135deg, ${colors.primary} 0%, #764ba2 100%)`,
               border: 'none',
             }}
+            onClick={() => message.info('功能开发中')}
           >
             新增合作伙伴
           </AntdButton>

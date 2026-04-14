@@ -243,8 +243,8 @@ export default function TasksPage() {
       width: 100,
       render: () => (
         <div style={{ display: 'flex', gap: 4 }}>
-          <AntdButton type="text" icon={<EyeOutlined />} size="small" />
-          <AntdButton type="text" icon={<EditOutlined />} size="small" />
+          <AntdButton type="text" icon={<EyeOutlined />} size="small" onClick={() => message.info('功能开发中')} />
+          <AntdButton type="text" icon={<EditOutlined />} size="small" onClick={() => message.info('功能开发中')} />
         </div>
       ),
     },
@@ -336,9 +336,9 @@ export default function TasksPage() {
             >
               全部
             </AntdButton>
-            <AntdButton type="text" style={{ borderRadius: 10 }}>进行中</AntdButton>
-            <AntdButton type="text" style={{ borderRadius: 10 }}>待验收</AntdButton>
-            <AntdButton type="text" style={{ borderRadius: 10 }}>已完成</AntdButton>
+            <AntdButton type="text" style={{ borderRadius: 10 }} onClick={() => message.info('功能开发中')}>进行中</AntdButton>
+            <AntdButton type="text" style={{ borderRadius: 10 }} onClick={() => message.info('功能开发中')}>待验收</AntdButton>
+            <AntdButton type="text" style={{ borderRadius: 10 }} onClick={() => message.info('功能开发中')}>已完成</AntdButton>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <AntdButton
@@ -349,6 +349,7 @@ export default function TasksPage() {
                 background: `linear-gradient(135deg, ${colors.primary} 0%, #764ba2 100%)`,
                 border: 'none',
               }}
+              onClick={() => message.info('功能开发中')}
             >
               创建任务
             </AntdButton>

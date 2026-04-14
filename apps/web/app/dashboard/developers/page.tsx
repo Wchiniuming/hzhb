@@ -173,8 +173,8 @@ export default function DevelopersPage() {
       width: 120,
       render: () => (
         <div style={{ display: 'flex', gap: 8 }}>
-          <AntdButton type="text" icon={<EyeOutlined />} size="small" />
-          <AntdButton type="text" icon={<EditOutlined />} size="small" />
+          <AntdButton type="text" icon={<EyeOutlined />} size="small" onClick={() => message.info('功能开发中')} />
+          <AntdButton type="text" icon={<EditOutlined />} size="small" onClick={() => message.info('功能开发中')} />
         </div>
       ),
     },
@@ -211,6 +211,7 @@ export default function DevelopersPage() {
             type="primary"
             icon={<PlusOutlined />}
             style={{ borderRadius: 10, background: `linear-gradient(135deg, ${colors.primary} 0%, #764ba2 100%)`, border: 'none', boxShadow: '0 4px 12px rgba(102, 126, 234, 0.4)' }}
+            onClick={() => message.info('功能开发中')}
           >
             新增开发人员
           </AntdButton>

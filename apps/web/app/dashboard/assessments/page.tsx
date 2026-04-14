@@ -231,8 +231,8 @@ export default function AssessmentsPage() {
       width: 100,
       render: () => (
         <div style={{ display: 'flex', gap: 4 }}>
-          <AntdButton type="text" icon={<EyeOutlined />} size="small" />
-          <AntdButton type="text" icon={<BarChartOutlined />} size="small" />
+          <AntdButton type="text" icon={<EyeOutlined />} size="small" onClick={() => message.info('功能开发中')} />
+          <AntdButton type="text" icon={<BarChartOutlined />} size="small" onClick={() => message.info('功能开发中')} />
         </div>
       ),
     },
@@ -318,8 +318,8 @@ export default function AssessmentsPage() {
         >
           <div style={{ display: 'flex', gap: 8 }}>
             <AntdButton type="primary" style={{ borderRadius: 10 }}>全部</AntdButton>
-            <AntdButton type="text" style={{ borderRadius: 10 }}>已完成</AntdButton>
-            <AntdButton type="text" style={{ borderRadius: 10 }}>进行中</AntdButton>
+            <AntdButton type="text" style={{ borderRadius: 10 }} onClick={() => message.info('功能开发中')}>已完成</AntdButton>
+            <AntdButton type="text" style={{ borderRadius: 10 }} onClick={() => message.info('功能开发中')}>进行中</AntdButton>
           </div>
           <AntdButton
             type="primary"
@@ -329,6 +329,7 @@ export default function AssessmentsPage() {
               background: `linear-gradient(135deg, ${colors.primary} 0%, #764ba2 100%)`,
               border: 'none',
             }}
+            onClick={() => message.info('功能开发中')}
           >
             创建评估计划
           </AntdButton>

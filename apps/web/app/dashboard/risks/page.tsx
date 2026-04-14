@@ -235,9 +235,9 @@ export default function RisksPage() {
       width: 100,
       render: () => (
         <div style={{ display: 'flex', gap: 4 }}>
-          <AntdButton type="text" icon={<EyeOutlined />} size="small" />
-          <AntdButton type="text" icon={<EditOutlined />} size="small" />
-          <AntdButton type="text" icon={<DeleteOutlined />} size="small" danger />
+          <AntdButton type="text" icon={<EyeOutlined />} size="small" onClick={() => message.info('功能开发中')} />
+          <AntdButton type="text" icon={<EditOutlined />} size="small" onClick={() => message.info('功能开发中')} />
+          <AntdButton type="text" icon={<DeleteOutlined />} size="small" danger onClick={() => message.info('功能开发中')} />
         </div>
       ),
     },
@@ -323,9 +323,9 @@ export default function RisksPage() {
         >
           <div style={{ display: 'flex', gap: 8 }}>
             <AntdButton type="primary" style={{ borderRadius: 10 }}>全部</AntdButton>
-            <AntdButton type="text" style={{ borderRadius: 10 }}>监控中</AntdButton>
-            <AntdButton type="text" style={{ borderRadius: 10 }}>处理中</AntdButton>
-            <AntdButton type="text" style={{ borderRadius: 10 }}>已处理</AntdButton>
+            <AntdButton type="text" style={{ borderRadius: 10 }} onClick={() => message.info('功能开发中')}>监控中</AntdButton>
+            <AntdButton type="text" style={{ borderRadius: 10 }} onClick={() => message.info('功能开发中')}>处理中</AntdButton>
+            <AntdButton type="text" style={{ borderRadius: 10 }} onClick={() => message.info('功能开发中')}>已处理</AntdButton>
           </div>
           <AntdButton
             type="primary"
@@ -335,6 +335,7 @@ export default function RisksPage() {
               background: `linear-gradient(135deg, ${colors.primary} 0%, #764ba2 100%)`,
               border: 'none',
             }}
+            onClick={() => message.info('功能开发中')}
           >
             新增风险
           </AntdButton>
