@@ -74,6 +74,7 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [currentDate, setCurrentDate] = useState('');
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -85,6 +86,7 @@ export default function DashboardLayout({
     if (userStr) {
       setUser(JSON.parse(userStr));
     }
+    setCurrentDate(new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }));
   }, [router]);
 
   const userMenuItems = [
@@ -234,7 +236,7 @@ export default function DashboardLayout({
               style={{ fontSize: 16 }}
             />
             <span style={{ color: colors.text.secondary, fontSize: 14 }}>
-              {new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}
+              {currentDate}
             </span>
           </div>
           
