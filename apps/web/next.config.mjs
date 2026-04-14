@@ -5,6 +5,11 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  experimental: {
+    turbo: {
+      resolveAlias: {},
+    },
+  },
   async rewrites() {
     return [
       {
