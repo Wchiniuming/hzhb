@@ -1,12 +1,11 @@
 'use client';
 
-import { Form, Input, Button } from 'antd';
+import { Form, Input, Button, message } from 'antd';
 import { UserOutlined, LockOutlined, SafetyOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { colors } from '@/lib/theme';
 import api from '@/lib/api';
-import { useMessage } from '@/components/useMessage';
 
 const AntdForm = Form as any;
 const AntdInput = Input as any;
@@ -16,7 +15,6 @@ export default function LoginPage() {
   const router = useRouter();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
-  const messageApi = useMessage();
 
   const onFinish = async (values: { username: string; password: string }) => {
     setLoading(true);
@@ -24,10 +22,10 @@ export default function LoginPage() {
       const data = await api.auth.login(values);
       localStorage.setItem('token', data.accessToken);
       localStorage.setItem('user', JSON.stringify(data.user));
-      messageApi.success('登录成功，即将跳转...');
+      message.success('登录成功，即将跳转...');
       setTimeout(() => router.push('/dashboard'), 500);
     } catch {
-      messageApi.error('用户名或密码错误');
+      message.error('用户名或密码错误');
     } finally {
       setLoading(false);
     }

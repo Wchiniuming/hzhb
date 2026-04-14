@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Table, Button, Tag, Progress, Avatar } from 'antd';
+import { Table, Button, Tag, Progress, Avatar, message } from 'antd';
 import {
   PlusOutlined,
   CheckCircleOutlined,
@@ -14,7 +14,6 @@ import {
 } from '@ant-design/icons';
 import { colors } from '@/lib/theme';
 import api from '@/lib/api';
-import { useMessage } from '@/components/useMessage';
 
 const AntdTable = Table as any;
 const AntdButton = Button as any;
@@ -45,7 +44,6 @@ export default function ImprovementsPage() {
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
-  const messageApi = useMessage();
 
   const fetchData = async () => {
     setLoading(true);
@@ -68,7 +66,7 @@ export default function ImprovementsPage() {
       setImprovements(mappedData);
       setTotal(res.meta?.total || res.data.length);
     } catch (err: any) {
-      messageApi.error(err.message || '获取改进项列表失败');
+      message.error(err.message || '获取改进项列表失败');
     } finally {
       setLoading(false);
     }
