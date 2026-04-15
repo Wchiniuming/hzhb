@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import dayjs from 'dayjs';
 import {
   Table, Button, Input, Tag, Avatar, Tooltip, App,
@@ -124,6 +125,7 @@ interface CertificateFormData {
 
 export default function DevelopersPage() {
   const { message } = App.useApp();
+  const searchParams = useSearchParams();
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -195,6 +197,13 @@ export default function DevelopersPage() {
 
   useEffect(() => { fetchData(); }, [page, pageSize, search, statusFilter, partnerFilter]);
   useEffect(() => { fetchPartners(); fetchStats(); fetchSkills(); }, []);
+
+  useEffect(() => {
+    if (searchParams.get('action') === 'create') {
+      handleAdd();
+      window.history.replaceState({}, '', '/dashboard/developers');
+    }
+  }, [searchParams]);
 
   const getSkills = (skillList: any[]) => skillList?.map((s: any) => s.skillTag?.name || s.name || s.skillName || String(s)) || [];
 

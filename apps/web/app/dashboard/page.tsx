@@ -364,10 +364,11 @@ export default function DashboardPage() {
             </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {[
-                { label: '新增开发人员', href: '/dashboard/developers' },
-                { label: '创建任务', href: '/dashboard/tasks' },
-                { label: '发起评估', href: '/dashboard/assessments' },
-                { label: '添加风险项', href: '/dashboard/risks' },
+                { label: '新增开发人员', href: '/dashboard/developers?action=create' },
+                { label: '创建任务', href: '/dashboard/tasks?action=create' },
+                { label: '发起评估', href: '/dashboard/assessments?action=create' },
+                { label: '添加风险项', href: '/dashboard/risks?action=create' },
+                { label: '创建改进项', href: '/dashboard/improvements?action=create' },
               ].map((action) => (
                 <div
                   key={action.label}

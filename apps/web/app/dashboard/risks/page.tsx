@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   Table, Button, Tag, Tooltip, Avatar, App,
   Modal, Form, Input, Select, Row, Col, Space, Popconfirm, Descriptions, Divider, Drawer,
@@ -59,6 +60,7 @@ const statusColors: Record<string, string> = {
 
 export default function RisksPage() {
   const { message } = App.useApp();
+  const searchParams = useSearchParams();
   const [risks, setRisks] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
@@ -110,6 +112,13 @@ export default function RisksPage() {
 
   useEffect(() => { fetchData(); }, [page, pageSize, typeFilter, levelFilter]);
   useEffect(() => { fetchStats(); fetchRiskTypes(); }, []);
+
+  useEffect(() => {
+    if (searchParams.get('action') === 'create') {
+      handleAdd();
+      window.history.replaceState({}, '', '/dashboard/risks');
+    }
+  }, [searchParams]);
 
   const handleAdd = () => {
     setEditingRisk(null);

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Table, Button, Tag, Progress, Tooltip, App } from 'antd';
 import {
   PlusOutlined,
@@ -44,6 +45,7 @@ function getColor(map: Record<string, { bg: string; color: string }>, key: strin
 
 export default function AssessmentsPage() {
   const { message } = App.useApp();
+  const searchParams = useSearchParams();
   const [assessments, setAssessments] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
@@ -78,6 +80,14 @@ export default function AssessmentsPage() {
   useEffect(() => {
     fetchData();
   }, [page]);
+
+  useEffect(() => {
+    if (searchParams.get('action') === 'create') {
+      message.info('评估发起功能开发中...');
+      window.history.replaceState({}, '', '/dashboard/assessments');
+    }
+  }, [searchParams]);
+
   const columns = [
     {
       title: '合作伙伴',

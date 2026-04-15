@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   Table, Button, Tag, Progress, Tooltip, Avatar, App,
   Modal, Form, Input, Select, InputNumber, DatePicker, Row, Col, Space, Popconfirm, Descriptions, Divider, Drawer, Dropdown,
@@ -82,6 +83,7 @@ const priorityOptions = [
 
 export default function TasksPage() {
   const { message } = AntdApp.useApp();
+  const searchParams = useSearchParams();
   const [tasks, setTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
@@ -132,6 +134,13 @@ export default function TasksPage() {
 
   useEffect(() => { fetchData(); }, [page, pageSize, statusFilter]);
   useEffect(() => { fetchStats(); fetchPartners(); }, []);
+
+  useEffect(() => {
+    if (searchParams.get('action') === 'create') {
+      handleAdd();
+      window.history.replaceState({}, '', '/dashboard/tasks');
+    }
+  }, [searchParams]);
 
   const handleAdd = () => {
     setEditingTask(null);

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   Table, Button, Tag, Progress, Row, Col, App,
   Modal, Form, Input, Select, Space, Popconfirm, Descriptions, Drawer, Dropdown,
@@ -48,6 +49,7 @@ function getStatusColor(status: string): string {
 
 export default function PartnersPage() {
   const { message } = App.useApp();
+  const searchParams = useSearchParams();
   const [partners, setPartners] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
@@ -87,6 +89,13 @@ export default function PartnersPage() {
 
   useEffect(() => { fetchData(); }, [page, pageSize]);
   useEffect(() => { fetchStats(); }, []);
+
+  useEffect(() => {
+    if (searchParams.get('action') === 'create') {
+      handleAdd();
+      window.history.replaceState({}, '', '/dashboard/partners');
+    }
+  }, [searchParams]);
 
   const handleAdd = () => {
     setEditingPartner(null);

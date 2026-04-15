@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   Table, Button, Tag, Progress, Avatar, App,
   Modal, Form, Input, Select, DatePicker, Row, Col, Space, Popconfirm, Descriptions, Divider, Drawer, Dropdown,
@@ -62,6 +63,7 @@ const responsibleTypeMap: Record<string, string> = {
 
 export default function ImprovementsPage() {
   const { message } = App.useApp();
+  const searchParams = useSearchParams();
   const [improvements, setImprovements] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
@@ -112,6 +114,13 @@ export default function ImprovementsPage() {
 
   useEffect(() => { fetchData(); }, [page, pageSize, statusFilter]);
   useEffect(() => { fetchStats(); fetchPartners(); }, []);
+
+  useEffect(() => {
+    if (searchParams.get('action') === 'create') {
+      handleAdd();
+      window.history.replaceState({}, '', '/dashboard/improvements');
+    }
+  }, [searchParams]);
 
   const handleAdd = () => {
     setEditingImprovement(null);
