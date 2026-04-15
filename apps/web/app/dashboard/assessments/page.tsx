@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Table, Button, Tag, Progress, Tooltip, message } from 'antd';
+import { Table, Button, Tag, Progress, Tooltip, App } from 'antd';
 import {
   PlusOutlined,
   CheckCircleOutlined,
@@ -43,6 +43,7 @@ function getColor(map: Record<string, { bg: string; color: string }>, key: strin
 }
 
 export default function AssessmentsPage() {
+  const { message } = App.useApp();
   const [assessments, setAssessments] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);

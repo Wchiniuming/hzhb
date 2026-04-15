@@ -153,8 +153,8 @@ model Task {
   description      String?
   type             String
   deliveryStandard String?
-  startDate        DateTime
-  endDate          DateTime
+  startDate        DateTime?
+  endDate          DateTime?
   priority         String   @default("MEDIUM")  // LOW, MEDIUM, HIGH, URGENT
   budget           Float?
   status           String   @default("NOT_STARTED")  // NOT_STARTED, IN_PROGRESS, COMPLETED, DELAYED, CANCELLED, ACCEPTED
@@ -309,15 +309,15 @@ model AssessmentApproval {
 // ==================== IMPROVEMENT MODELS ====================
 model ImprovementRequirement {
   id              String    @id @default(uuid())
-  originType      String  // ASSESSMENT, TASK_DELAY, AUDIT, RISK
+  originType      String?  // ASSESSMENT, TASK_DELAY, AUDIT, RISK
   originEntityId  String?
-  title           String
+  title           String?
   description     String?
-  targetDate      DateTime
-  responsibleType String  // PARTNER, DEVELOPER, TEAM
+  targetDate      DateTime?
+  responsibleType String?  // PARTNER, DEVELOPER, TEAM
   responsibleId   String?
   status          String    @default("IDENTIFIED")  // IDENTIFIED, PLANNING, IN_PROGRESS, COMPLETED, ACCEPTED
-  createdBy       String
+  createdBy       String?
   createdAt       DateTime  @default(now())
 
   plan              ImprovementPlan? @relation(fields: [improvementPlanId], references: [id])

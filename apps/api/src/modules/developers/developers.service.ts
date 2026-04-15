@@ -29,6 +29,8 @@ export class DevelopersService {
 
     if (status) {
       where.status = status;
+    } else {
+      where.status = { not: 'INACTIVE' };
     }
 
     const [developers, total] = await Promise.all([
@@ -202,7 +204,14 @@ export class DevelopersService {
     const existing = await this.prisma.developer.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException(`开发人员不存在: ${id}`);
 
-    await this.prisma.developer.update({
+    return this.prisma.developer.delete({ where: { id } });
+  }
+
+  async softDelete(id: string) {
+    const existing = await this.prisma.developer.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException(`开发人员不存在: ${id}`);
+
+    return this.prisma.developer.update({
       where: { id },
       data: { status: 'INACTIVE' },
     });

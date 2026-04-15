@@ -3,9 +3,9 @@
 import { useEffect, useState, useMemo } from 'react';
 import dayjs from 'dayjs';
 import {
-  Table, Button, Input, Tag, Avatar, Tooltip, message,
+  Table, Button, Input, Tag, Avatar, Tooltip, App,
   Modal, Form, Select, InputNumber, Radio, Space, Drawer,
-  Popconfirm, Descriptions, Divider, DatePicker, Card, Row, Col,
+  Popconfirm, Descriptions, Divider, DatePicker, Card, Row, Col, Dropdown,
 } from 'antd';
 import {
   PlusOutlined, SearchOutlined, EditOutlined, EyeOutlined,
@@ -37,6 +37,7 @@ const AntdCard = Card as any;
 const AntdRow = Row as any;
 const AntdCol = Col as any;
 const AntdDatePicker = DatePicker as any;
+const AntdDropdown = Dropdown as any;
 
 const statusMap: Record<string, string> = {
   PENDING: '待审核',
@@ -122,6 +123,7 @@ interface CertificateFormData {
 }
 
 export default function DevelopersPage() {
+  const { message } = App.useApp();
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -231,6 +233,17 @@ export default function DevelopersPage() {
     }
   };
 
+  const handleSoftDelete = async (id: string) => {
+    try {
+      await api.developers.softDelete(id);
+      message.success('软删除成功');
+      fetchData();
+      fetchStats();
+    } catch (e: any) {
+      message.error(e.message || '软删除失败');
+    }
+  };
+
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
@@ -314,8 +327,8 @@ export default function DevelopersPage() {
       const values = await expForm.validateFields();
       await api.developers.addExperience(detailData.id, {
         ...values,
-        startDate: values.startDate.toDate(),
-        endDate: values.endDate?.toDate(),
+        startDate: values.startDate ? values.startDate.toDate().toISOString() : undefined,
+        endDate: values.endDate ? values.endDate.toDate().toISOString() : undefined,
       });
       message.success('项目经验添加成功');
       setExpModalVisible(false);
@@ -337,8 +350,8 @@ export default function DevelopersPage() {
       const values = await certForm.validateFields();
       await api.developers.addCertificate(detailData.id, {
         ...values,
-        issueDate: values.issueDate.toDate(),
-        expireDate: values.expireDate?.toDate(),
+        issueDate: values.issueDate ? values.issueDate.toDate().toISOString() : undefined,
+        expireDate: values.expireDate ? values.expireDate.toDate().toISOString() : undefined,
       });
       message.success('证书添加成功');
       setCertModalVisible(false);
@@ -454,9 +467,12 @@ export default function DevelopersPage() {
         <AntdSpace size={4}>
           <AntdButton type="text" icon={<EyeOutlined />} size="small" onClick={() => handleViewDetail(record)} />
           <AntdButton type="text" icon={<EditOutlined />} size="small" onClick={() => handleEdit(record)} />
-          <AntdPopconfirm title="确定删除该开发人员？" onConfirm={() => handleDelete(record.id)}>
+          <AntdDropdown menu={{ items: [
+            { key: 'soft', label: '软删除', onClick: () => handleSoftDelete(record.id) },
+            { key: 'delete', label: '删除', danger: true, onClick: () => handleDelete(record.id) },
+          ]}}>
             <AntdButton type="text" icon={<DeleteOutlined />} size="small" danger />
-          </AntdPopconfirm>
+          </AntdDropdown>
         </AntdSpace>
       ),
     },
@@ -681,7 +697,7 @@ export default function DevelopersPage() {
                   {statusMap[detailData.status] || detailData.status}
                 </AntdTag>
               </AntdDescriptions.Item>
-              <AntdDescriptions.Item label="入职时间" span={1}>{detailData.createdAt ? new Date(detailData.createdAt).toLocaleDateString('zh-CN') : '-'}</AntdDescriptions.Item>
+              <AntdDescriptions.Item label="入职时间" span={2}>{detailData.createdAt ? new Date(detailData.createdAt).toLocaleDateString('zh-CN') : '-'}</AntdDescriptions.Item>
             </AntdDescriptions>
 
             <AntdDivider orientation="left">

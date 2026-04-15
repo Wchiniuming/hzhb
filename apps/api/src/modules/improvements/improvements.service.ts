@@ -25,19 +25,21 @@ export class ImprovementsService {
     return requirement;
   }
 
-  async createRequirement(createDto: CreateRequirementDto, createdBy: string) {
+  async createRequirement(createDto: CreateRequirementDto, createdBy: string = 'system') {
+    const data: any = {
+      originType: createDto.originType,
+      originEntityId: createDto.originEntityId,
+      title: createDto.title,
+      description: createDto.description,
+      responsibleType: createDto.responsibleType,
+      responsibleId: createDto.responsibleId,
+      createdBy: createdBy || 'system',
+      status: 'IDENTIFIED',
+    };
+    if (createDto.targetDate) data.targetDate = new Date(createDto.targetDate);
+    
     return this.prisma.improvementRequirement.create({
-      data: {
-        originType: createDto.originType,
-        originEntityId: createDto.originEntityId,
-        title: createDto.title,
-        description: createDto.description,
-        targetDate: new Date(createDto.targetDate),
-        responsibleType: createDto.responsibleType,
-        responsibleId: createDto.responsibleId,
-        createdBy,
-        status: 'IDENTIFIED',
-      },
+      data,
     });
   }
 
@@ -52,7 +54,13 @@ export class ImprovementsService {
   async removeRequirement(id: string) {
     const requirement = await this.prisma.improvementRequirement.findUnique({ where: { id } });
     if (!requirement) throw new NotFoundException(`Requirement with ID ${id} not found`);
-    await this.prisma.improvementRequirement.update({ where: { id }, data: { status: 'ACCEPTED' } });
+    return this.prisma.improvementRequirement.delete({ where: { id } });
+  }
+
+  async softDeleteRequirement(id: string) {
+    const requirement = await this.prisma.improvementRequirement.findUnique({ where: { id } });
+    if (!requirement) throw new NotFoundException(`Requirement with ID ${id} not found`);
+    return this.prisma.improvementRequirement.update({ where: { id }, data: { status: 'ACCEPTED' } });
   }
 
   async createPlan(createDto: CreatePlanDto) {

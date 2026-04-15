@@ -2,24 +2,28 @@ import { IsString, IsOptional, IsDateString, IsUUID, IsArray, IsObject } from 'c
 
 export class CreateRequirementDto {
   @IsString()
-  originType: string;
+  @IsOptional()
+  originType?: string;
 
   @IsString()
   @IsOptional()
   originEntityId?: string;
 
   @IsString()
-  title: string;
+  @IsOptional()
+  title?: string;
 
   @IsString()
   @IsOptional()
   description?: string;
 
   @IsDateString()
-  targetDate: string;
+  @IsOptional()
+  targetDate?: string;
 
   @IsString()
-  responsibleType: string;
+  @IsOptional()
+  responsibleType?: string;
 
   @IsString()
   @IsOptional()

@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import {
-  Table, Button, Tag, Tooltip, Avatar, message,
-  Modal, Form, Input, Select, Row, Col, Space, Popconfirm, Descriptions, Divider,
+  Table, Button, Tag, Tooltip, Avatar, App,
+  Modal, Form, Input, Select, Row, Col, Space, Popconfirm, Descriptions, Divider, Drawer,
 } from 'antd';
 import {
   PlusOutlined, EditOutlined, EyeOutlined,
@@ -27,6 +27,7 @@ const AntdPopconfirm = Popconfirm as any;
 const AntdDescriptions = Descriptions as any;
 const AntdDivider = Divider as any;
 const AntdTextArea = Input.TextArea as any;
+const AntdDrawer = Drawer as any;
 
 const levelMap: Record<string, string> = {
   CRITICAL: '严重',
@@ -35,11 +36,11 @@ const levelMap: Record<string, string> = {
   LOW: '低',
 };
 
-const levelColors: Record<string, string> = {
-  CRITICAL: '#ff4d4f',
-  HIGH: colors.error,
-  MEDIUM: colors.warning,
-  LOW: colors.success,
+const levelColors: Record<string, { bg: string; color: string }> = {
+  CRITICAL: { bg: 'rgba(255, 77, 79, 0.1)', color: colors.error },
+  HIGH: { bg: 'rgba(255, 77, 79, 0.1)', color: colors.error },
+  MEDIUM: { bg: 'rgba(250, 173, 20, 0.1)', color: colors.warning },
+  LOW: { bg: 'rgba(82, 196, 26, 0.1)', color: colors.success },
 };
 
 const statusMap: Record<string, string> = {
@@ -57,6 +58,7 @@ const statusColors: Record<string, string> = {
 };
 
 export default function RisksPage() {
+  const { message } = App.useApp();
   const [risks, setRisks] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
@@ -187,7 +189,7 @@ export default function RisksPage() {
       render: (_: any, record: any) => (
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-            <Tag style={{ background: `${levelColors[record.level]}15`, color: levelColors[record.level], border: 'none', fontSize: 11 }}>
+            <Tag style={{ background: levelColors[record.level]?.bg || 'rgba(0,0,0,0.1)', color: levelColors[record.level]?.color || colors.text.secondary, border: 'none', fontSize: 11 }}>
               {levelMap[record.level] || record.level}
             </Tag>
             <Tag style={{ background: colors.background.light, color: colors.text.secondary, border: 'none', fontSize: 11 }}>
@@ -218,7 +220,7 @@ export default function RisksPage() {
       key: 'level',
       width: 80,
       render: (_: any, record: any) => (
-        <Tag style={{ background: `${levelColors[record.level]}15`, color: levelColors[record.level], border: 'none', borderRadius: 4 }}>
+        <Tag style={{ background: levelColors[record.level]?.bg || 'rgba(0,0,0,0.1)', color: levelColors[record.level]?.color || colors.text.secondary, border: 'none', borderRadius: 4 }}>
           {levelMap[record.level] || record.level}
         </Tag>
       ),
@@ -261,24 +263,26 @@ export default function RisksPage() {
       </div>
 
       {stats && (
-        <div style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
+        <Row gutter={16} style={{ marginBottom: 24 }}>
           {[
-            { label: '高风险', value: stats.byLevel?.find((s: any) => s.level === 'HIGH')?.count || 0, icon: ExclamationCircleOutlined, color: colors.error },
-            { label: '中风险', value: stats.byLevel?.find((s: any) => s.level === 'MEDIUM')?.count || 0, icon: WarningOutlined, color: colors.warning },
-            { label: '低风险', value: stats.byLevel?.find((s: any) => s.level === 'LOW')?.count || 0, icon: CheckCircleOutlined, color: colors.success },
-            { label: '风险总数', value: stats.total || 0, icon: SafetyOutlined, color: colors.primary },
+            { label: '严重', value: stats.byLevel?.find((s: any) => s.level === 'CRITICAL')?.count || 0, icon: CloseCircleOutlined, colorConfig: levelColors.CRITICAL },
+            { label: '高风险', value: stats.byLevel?.find((s: any) => s.level === 'HIGH')?.count || 0, icon: ExclamationCircleOutlined, colorConfig: levelColors.HIGH },
+            { label: '中风险', value: stats.byLevel?.find((s: any) => s.level === 'MEDIUM')?.count || 0, icon: WarningOutlined, colorConfig: levelColors.MEDIUM },
+            { label: '低风险', value: stats.byLevel?.find((s: any) => s.level === 'LOW')?.count || 0, icon: CheckCircleOutlined, colorConfig: levelColors.LOW },
           ].map((stat, i) => (
-            <div key={i} style={{ flex: 1, padding: 16, background: '#fff', borderRadius: 12, boxShadow: '0 2px 12px rgba(0,0,0,0.04)', display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ width: 48, height: 48, borderRadius: 12, background: `${stat.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, fontSize: 20 }}>
-                <stat.icon />
+            <Col span={6} key={i}>
+              <div style={{ padding: 16, background: '#fff', borderRadius: 12, boxShadow: '0 2px 12px rgba(0,0,0,0.04)', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 48, height: 48, borderRadius: 12, background: stat.colorConfig.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.colorConfig.color, fontSize: 20 }}>
+                  <stat.icon />
+                </div>
+                <div>
+                  <div style={{ fontSize: 24, fontWeight: 700, color: colors.text.primary, lineHeight: 1 }}>{stat.value}</div>
+                  <div style={{ fontSize: 13, color: colors.text.secondary, marginTop: 2 }}>{stat.label}</div>
+                </div>
               </div>
-              <div>
-                <div style={{ fontSize: 24, fontWeight: 700, color: colors.text.primary, lineHeight: 1 }}>{stat.value}</div>
-                <div style={{ fontSize: 13, color: colors.text.secondary, marginTop: 2 }}>{stat.label}</div>
-              </div>
-            </div>
+            </Col>
           ))}
-        </div>
+        </Row>
       )}
 
       <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 12px rgba(0,0,0,0.04)', overflow: 'hidden' }}>
@@ -348,11 +352,11 @@ export default function RisksPage() {
               <AntdDescriptions.Item label="风险名称" span={2}><span style={{ fontWeight: 600 }}>{detailData.name}</span></AntdDescriptions.Item>
               <AntdDescriptions.Item label="风险类型" span={1}>{detailData.riskType?.name || '-'}</AntdDescriptions.Item>
               <AntdDescriptions.Item label="风险等级" span={1}>
-                <Tag style={{ background: `${levelColors[detailData.level]}15`, color: levelColors[detailData.level], border: 'none' }}>
+                <Tag style={{ background: levelColors[detailData.level]?.bg || 'rgba(0,0,0,0.1)', color: levelColors[detailData.level]?.color || colors.text.secondary, border: 'none' }}>
                   {levelMap[detailData.level] || detailData.level}
                 </Tag>
               </AntdDescriptions.Item>
-              <AntdDescriptions.Item label="状态" span={1}>
+              <AntdDescriptions.Item label="状态" span={2}>
                 <Tag style={{ background: `${statusColors[detailData.status]}15`, color: statusColors[detailData.status], border: 'none' }}>
                   {statusMap[detailData.status] || detailData.status}
                 </Tag>

@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import {
-  Table, Button, Tag, Progress, Row, Col, message,
-  Modal, Form, Input, Select, Space, Popconfirm, Descriptions, Drawer,
+  Table, Button, Tag, Progress, Row, Col, App,
+  Modal, Form, Input, Select, Space, Popconfirm, Descriptions, Drawer, Dropdown,
 } from 'antd';
 import {
   PlusOutlined, MailOutlined, PhoneOutlined, EnvironmentOutlined,
@@ -25,6 +25,7 @@ const AntdSpace = Space as any;
 const AntdPopconfirm = Popconfirm as any;
 const AntdDescriptions = Descriptions as any;
 const AntdDrawer = Drawer as any;
+const AntdDropdown = Dropdown as any;
 
 const statusMap: Record<string, string> = {
   ACTIVE: '合作中',
@@ -46,6 +47,7 @@ function getStatusColor(status: string): string {
 }
 
 export default function PartnersPage() {
+  const { message } = App.useApp();
   const [partners, setPartners] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
@@ -120,6 +122,17 @@ export default function PartnersPage() {
       fetchStats();
     } catch (e: any) {
       message.error(e.message || '删除失败');
+    }
+  };
+
+  const handleSoftDelete = async (id: string) => {
+    try {
+      await api.partners.softDelete(id);
+      message.success('软删除成功');
+      fetchData();
+      fetchStats();
+    } catch (e: any) {
+      message.error(e.message || '软删除失败');
     }
   };
 
@@ -297,9 +310,12 @@ export default function PartnersPage() {
         <AntdSpace size={4}>
           <AntdButton type="text" icon={<EyeOutlined />} size="small" onClick={() => handleViewDetail(record)} />
           <AntdButton type="text" icon={<EditOutlined />} size="small" onClick={() => handleEdit(record)} />
-          <AntdPopconfirm title="确定删除该合作伙伴？" onConfirm={() => handleDelete(record.id)}>
+          <AntdDropdown menu={{ items: [
+            { key: 'soft', label: '软删除', onClick: () => handleSoftDelete(record.id) },
+            { key: 'delete', label: '删除', danger: true, onClick: () => handleDelete(record.id) },
+          ]}}>
             <AntdButton type="text" icon={<DeleteOutlined />} size="small" danger />
-          </AntdPopconfirm>
+          </AntdDropdown>
         </AntdSpace>
       ),
     },

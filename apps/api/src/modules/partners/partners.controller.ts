@@ -82,6 +82,12 @@ export class PartnersController {
     return this.partnersService.remove(id);
   }
 
+  @Post(':id/soft-delete')
+  @HttpCode(HttpStatus.OK)
+  async softDelete(@Param('id') id: string) {
+    return this.partnersService.softDelete(id);
+  }
+
   @Patch(':id/status')
   async updateStatus(
     @Param('id') id: string,

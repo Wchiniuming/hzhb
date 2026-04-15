@@ -16,10 +16,12 @@ export class CreateTaskDto {
   deliveryStandard?: string;
 
   @IsDateString()
-  startDate: string;
+  @IsOptional()
+  startDate?: string;
 
   @IsDateString()
-  endDate: string;
+  @IsOptional()
+  endDate?: string;
 
   @IsString()
   @IsOptional()

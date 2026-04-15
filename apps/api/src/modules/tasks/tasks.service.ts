@@ -40,15 +40,17 @@ export class TasksService {
   }
 
   async create(createTaskDto: CreateTaskDto, createdBy: string) {
-    const { assigneeIds, ...taskData } = createTaskDto;
+    const { assigneeIds, startDate, endDate, ...taskData } = createTaskDto;
+    const data: any = {
+      ...taskData,
+      createdBy,
+    };
+    if (startDate) data.startDate = new Date(startDate);
+    if (endDate) data.endDate = new Date(endDate);
+    if (assigneeIds) data.assignments = { create: assigneeIds.map(developerId => ({ developerId })) };
+    
     return this.prisma.task.create({
-      data: {
-        ...taskData,
-        startDate: new Date(taskData.startDate),
-        endDate: new Date(taskData.endDate),
-        createdBy,
-        assignments: assigneeIds ? { create: assigneeIds.map(developerId => ({ developerId })) } : undefined,
-      },
+      data,
       include: { assignments: true },
     });
   }
@@ -63,6 +65,12 @@ export class TasksService {
   }
 
   async remove(id: string) {
+    const task = await this.prisma.task.findUnique({ where: { id } });
+    if (!task) throw new NotFoundException(`Task with ID ${id} not found`);
+    return this.prisma.task.delete({ where: { id } });
+  }
+
+  async softDelete(id: string) {
     const task = await this.prisma.task.findUnique({ where: { id } });
     if (!task) throw new NotFoundException(`Task with ID ${id} not found`);
     return this.prisma.task.update({ where: { id }, data: { status: 'CANCELLED' } });

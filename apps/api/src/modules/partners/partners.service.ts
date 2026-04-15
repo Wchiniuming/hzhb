@@ -173,12 +173,19 @@ export class PartnersService {
       throw new NotFoundException(`合作伙伴不存在: ${id}`);
     }
 
-    const devCount = await this.prisma.developer.count({ where: { partnerId: id } });
-    if (devCount > 0) {
-      throw new BadRequestException('该合作伙伴下有开发人员，无法删除');
+    return this.prisma.partner.delete({ where: { id } });
+  }
+
+  async softDelete(id: string) {
+    const existingPartner = await this.prisma.partner.findUnique({
+      where: { id },
+    });
+
+    if (!existingPartner) {
+      throw new NotFoundException(`合作伙伴不存在: ${id}`);
     }
 
-    await this.prisma.partner.update({
+    return this.prisma.partner.update({
       where: { id },
       data: { status: 'INACTIVE' },
     });

@@ -283,72 +283,61 @@ export default function DashboardPage() {
             </div>
 
             <Row gutter={16}>
-              {stats.risks.byLevel ? stats.risks.byLevel.map((level: any, index: number) => (
-                <Col span={8} key={index}>
-                  <div
-                    style={{
-                      padding: 20,
-                      borderRadius: 12,
-                      background: colors.background.light,
-                      textAlign: 'center',
-                    }}
-                  >
+              {stats.risks.byLevel ? stats.risks.byLevel.map((level: any, index: number) => {
+                const levelConfig = {
+                  CRITICAL: { bg: 'rgba(255, 77, 79, 0.1)', color: colors.error, label: '严重' },
+                  HIGH: { bg: 'rgba(255, 77, 79, 0.1)', color: colors.error, label: '高风险' },
+                  MEDIUM: { bg: 'rgba(250, 173, 20, 0.1)', color: colors.warning, label: '中风险' },
+                  LOW: { bg: 'rgba(82, 196, 26, 0.1)', color: colors.success, label: '低风险' },
+                };
+                const config = levelConfig[level.level as keyof typeof levelConfig] || levelConfig.LOW;
+                return (
+                  <Col span={6} key={index}>
                     <div
                       style={{
-                        width: 48,
-                        height: 48,
+                        padding: 20,
                         borderRadius: 12,
-                        margin: '0 auto 12px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        background:
-                          level.level === 'HIGH'
-                            ? 'rgba(255, 77, 79, 0.1)'
-                            : level.level === 'MEDIUM'
-                            ? 'rgba(250, 173, 20, 0.1)'
-                            : 'rgba(82, 196, 26, 0.1)',
-                        color:
-                          level.level === 'HIGH'
-                            ? colors.error
-                            : level.level === 'MEDIUM'
-                            ? colors.warning
-                            : colors.success,
-                        fontSize: 20,
-                        fontWeight: 700,
+                        background: colors.background.light,
+                        textAlign: 'center',
                       }}
                     >
-                      {level.count}
+                      <div
+                        style={{
+                          width: 48,
+                          height: 48,
+                          borderRadius: 12,
+                          margin: '0 auto 12px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          background: config.bg,
+                          color: config.color,
+                          fontSize: 20,
+                          fontWeight: 700,
+                        }}
+                      >
+                        {level.count}
+                      </div>
+                      <div style={{ fontSize: 14, color: colors.text.secondary, marginBottom: 4 }}>
+                        {config.label}
+                      </div>
+                      <div
+                        style={{
+                          display: 'inline-block',
+                          padding: '2px 10px',
+                          borderRadius: 10,
+                          fontSize: 11,
+                          fontWeight: 500,
+                          background: config.bg,
+                          color: config.color,
+                        }}
+                      >
+                        {level.level}级
+                      </div>
                     </div>
-                    <div style={{ fontSize: 14, color: colors.text.secondary, marginBottom: 4 }}>
-                      {level.level === 'HIGH' ? '高风险' : level.level === 'MEDIUM' ? '中风险' : '低风险'}
-                    </div>
-                    <div
-                      style={{
-                        display: 'inline-block',
-                        padding: '2px 10px',
-                        borderRadius: 10,
-                        fontSize: 11,
-                        fontWeight: 500,
-                        background:
-                          level.level === 'HIGH'
-                            ? 'rgba(255, 77, 79, 0.1)'
-                            : level.level === 'MEDIUM'
-                            ? 'rgba(250, 173, 20, 0.1)'
-                            : 'rgba(82, 196, 26, 0.1)',
-                        color:
-                          level.level === 'HIGH'
-                            ? colors.error
-                            : level.level === 'MEDIUM'
-                            ? colors.warning
-                            : colors.success,
-                      }}
-                    >
-                      {level.level}级
-                    </div>
-                  </div>
-                </Col>
-              )) : (
+                  </Col>
+                );
+              }) : (
                 <Col span={24}>
                   <div style={{ padding: 20, textAlign: 'center', color: colors.text.secondary }}>
                     共 {stats.risks.total} 个风险项

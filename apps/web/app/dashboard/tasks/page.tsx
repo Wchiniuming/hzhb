@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import {
-  Table, Button, Tag, Progress, Tooltip, Avatar, message,
-  Modal, Form, Input, Select, InputNumber, DatePicker, Row, Col, Space, Popconfirm, Descriptions, Divider,
+  Table, Button, Tag, Progress, Tooltip, Avatar, App,
+  Modal, Form, Input, Select, InputNumber, DatePicker, Row, Col, Space, Popconfirm, Descriptions, Divider, Drawer, Dropdown,
 } from 'antd';
 import {
   PlusOutlined, CalendarOutlined, EditOutlined, EyeOutlined,
@@ -30,6 +30,9 @@ const AntdPopconfirm = Popconfirm as any;
 const AntdDescriptions = Descriptions as any;
 const AntdDivider = Divider as any;
 const AntdTextArea = Input.TextArea as any;
+const AntdDrawer = Drawer as any;
+const AntdApp = App as any;
+const AntdDropdown = Dropdown as any;
 
 const priorityMap: Record<string, string> = {
   URGENT: '紧急',
@@ -78,6 +81,7 @@ const priorityOptions = [
 ];
 
 export default function TasksPage() {
+  const { message } = AntdApp.useApp();
   const [tasks, setTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
@@ -164,14 +168,29 @@ export default function TasksPage() {
     }
   };
 
+  const handleSoftDelete = async (id: string) => {
+    try {
+      await api.tasks.softDelete(id);
+      message.success('软删除成功');
+      fetchData();
+      fetchStats();
+    } catch (e: any) {
+      message.error(e.message || '软删除失败');
+    }
+  };
+
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
-      const submitData = {
-        ...values,
-        startDate: values.startDate?.toDate(),
-        endDate: values.endDate?.toDate(),
-      };
+      const { startDate, endDate, ...rest } = values;
+      const submitData: any = { ...rest };
+      
+      if (startDate && startDate.isValid) {
+        submitData.startDate = startDate.toDate().toISOString();
+      }
+      if (endDate && endDate.isValid) {
+        submitData.endDate = endDate.toDate().toISOString();
+      }
 
       if (editingTask) {
         await api.tasks.update(editingTask.id, submitData);
@@ -281,9 +300,12 @@ export default function TasksPage() {
         <AntdSpace size={2}>
           <AntdButton type="text" icon={<EyeOutlined />} size="small" onClick={() => handleViewDetail(record)} />
           <AntdButton type="text" icon={<EditOutlined />} size="small" onClick={() => handleEdit(record)} />
-          <AntdPopconfirm title="确定删除该任务？" onConfirm={() => handleDelete(record.id)}>
+          <AntdDropdown menu={{ items: [
+            { key: 'soft', label: '软删除', onClick: () => handleSoftDelete(record.id) },
+            { key: 'delete', label: '删除', danger: true, onClick: () => handleDelete(record.id) },
+          ]}}>
             <AntdButton type="text" icon={<DeleteOutlined />} size="small" danger />
-          </AntdPopconfirm>
+          </AntdDropdown>
         </AntdSpace>
       ),
     },
@@ -418,7 +440,7 @@ export default function TasksPage() {
               </AntdDescriptions.Item>
               <AntdDescriptions.Item label="开始日期" span={1}>{detailData.startDate ? new Date(detailData.startDate).toLocaleDateString('zh-CN') : '-'}</AntdDescriptions.Item>
               <AntdDescriptions.Item label="结束日期" span={1}>{detailData.endDate ? new Date(detailData.endDate).toLocaleDateString('zh-CN') : '-'}</AntdDescriptions.Item>
-              <AntdDescriptions.Item label="预算" span={1}>{detailData.budget ? `¥${detailData.budget}` : '-'}</AntdDescriptions.Item>
+              <AntdDescriptions.Item label="预算" span={2}>{detailData.budget ? `¥${detailData.budget}` : '-'}</AntdDescriptions.Item>
               <AntdDescriptions.Item label="描述" span={2}>{detailData.description || '-'}</AntdDescriptions.Item>
               <AntdDescriptions.Item label="交付标准" span={2}>{detailData.deliveryStandard || '-'}</AntdDescriptions.Item>
             </AntdDescriptions>

@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import {
-  Table, Button, Tag, Progress, Avatar, message,
-  Modal, Form, Input, Select, DatePicker, Row, Col, Space, Popconfirm, Descriptions, Divider,
+  Table, Button, Tag, Progress, Avatar, App,
+  Modal, Form, Input, Select, DatePicker, Row, Col, Space, Popconfirm, Descriptions, Divider, Drawer, Dropdown,
 } from 'antd';
 import {
   PlusOutlined, EditOutlined, EyeOutlined,
@@ -28,6 +28,8 @@ const AntdPopconfirm = Popconfirm as any;
 const AntdDescriptions = Descriptions as any;
 const AntdDivider = Divider as any;
 const AntdTextArea = Input.TextArea as any;
+const AntdDrawer = Drawer as any;
+const AntdDropdown = Dropdown as any;
 
 const statusMap: Record<string, string> = {
   IDENTIFIED: '已识别',
@@ -59,6 +61,7 @@ const responsibleTypeMap: Record<string, string> = {
 };
 
 export default function ImprovementsPage() {
+  const { message } = App.useApp();
   const [improvements, setImprovements] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
@@ -142,13 +145,26 @@ export default function ImprovementsPage() {
     }
   };
 
+  const handleSoftDelete = async (id: string) => {
+    try {
+      await api.improvements.softDeleteRequirement(id);
+      message.success('软删除成功');
+      fetchData();
+      fetchStats();
+    } catch (e: any) {
+      message.error(e.message || '软删除失败');
+    }
+  };
+
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
-      const submitData = {
-        ...values,
-        targetDate: values.targetDate?.toDate(),
-      };
+      const { targetDate, ...rest } = values;
+      const submitData: any = { ...rest };
+      
+      if (targetDate && targetDate.isValid) {
+        submitData.targetDate = targetDate.toDate().toISOString();
+      }
 
       if (editingImprovement) {
         await api.improvements.updateRequirement(editingImprovement.id, submitData);
@@ -269,9 +285,12 @@ export default function ImprovementsPage() {
         <AntdSpace size={2}>
           <AntdButton type="text" icon={<EyeOutlined />} size="small" onClick={() => handleViewDetail(record)} />
           <AntdButton type="text" icon={<EditOutlined />} size="small" onClick={() => handleEdit(record)} />
-          <AntdPopconfirm title="确定删除该改进项？" onConfirm={() => handleDelete(record.id)}>
+          <AntdDropdown menu={{ items: [
+            { key: 'soft', label: '软删除', onClick: () => handleSoftDelete(record.id) },
+            { key: 'delete', label: '删除', danger: true, onClick: () => handleDelete(record.id) },
+          ]}}>
             <AntdButton type="text" icon={<DeleteOutlined />} size="small" danger />
-          </AntdPopconfirm>
+          </AntdDropdown>
         </AntdSpace>
       ),
     },
@@ -381,7 +400,7 @@ export default function ImprovementsPage() {
               <AntdDescriptions.Item label="负责人类型" span={1}>{responsibleTypeMap[detailData.responsibleType] || '-'}</AntdDescriptions.Item>
               <AntdDescriptions.Item label="负责人" span={1}>{detailData.partner?.name || '-'}</AntdDescriptions.Item>
               <AntdDescriptions.Item label="目标日期" span={1}>{detailData.targetDate ? new Date(detailData.targetDate).toLocaleDateString('zh-CN') : '-'}</AntdDescriptions.Item>
-              <AntdDescriptions.Item label="状态" span={1}>
+              <AntdDescriptions.Item label="状态" span={2}>
                 <Tag style={{ background: `${statusColors[detailData.status]}15`, color: statusColors[detailData.status], border: 'none' }}>
                   {statusMap[detailData.status] || detailData.status}
                 </Tag>

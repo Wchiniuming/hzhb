@@ -41,6 +41,12 @@ export class ImprovementsController {
     return this.improvementsService.removeRequirement(id);
   }
 
+  @Post('requirements/:id/soft-delete')
+  @HttpCode(HttpStatus.OK)
+  async softDeleteRequirement(@Param('id', ParseUUIDPipe) id: string) {
+    return this.improvementsService.softDeleteRequirement(id);
+  }
+
   @Post('plans')
   @HttpCode(HttpStatus.CREATED)
   async createPlan(@Body() createDto: CreatePlanDto) {

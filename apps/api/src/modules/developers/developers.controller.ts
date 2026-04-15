@@ -81,6 +81,12 @@ export class DevelopersController {
     return this.developersService.remove(id);
   }
 
+  @Post(':id/soft-delete')
+  @HttpCode(HttpStatus.OK)
+  async softDelete(@Param('id') id: string) {
+    return this.developersService.softDelete(id);
+  }
+
   @Patch(':id/status')
   async updateStatus(
     @Param('id') id: string,

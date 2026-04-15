@@ -6,26 +6,54 @@ function getToken(): string | null {
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const token = getToken();
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    ...(options.headers as Record<string, string>),
-  };
-  if (token) headers['Authorization'] = `Bearer ${token}`;
+  try {
+    const token = getToken();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...(options.headers as Record<string, string>),
+    };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
 
-  const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
-  if (res.status === 401) {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('token');
-      window.location.href = '/login';
+    if (!path || typeof path !== 'string') {
+      throw new Error('Invalid request path');
     }
-    throw new Error('Unauthorized');
+
+    const cleanPath = String(path).replace(/undefined|\[object Object\]/g, '');
+    if (!cleanPath || !cleanPath.startsWith('/')) {
+      throw new Error('Invalid request path');
+    }
+
+    const url = `${API_BASE}${cleanPath}`;
+    const res = await fetch(url, { ...options, headers });
+
+    if (res.status === 401) {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+      }
+      throw new Error('Unauthorized');
+    }
+
+    const text = await res.text();
+    let body;
+    try {
+      body = text ? JSON.parse(text) : {};
+    } catch {
+      body = { message: text || `HTTP ${res.status}` };
+    }
+
+    if (!res.ok) {
+      throw new Error(body.message || body.error || `HTTP ${res.status}`);
+    }
+
+    return body as T;
+  } catch (e: any) {
+    if (e.message.includes('Invalid request') || e.message.includes('HTTP')) {
+      throw e;
+    }
+    console.error('Request error:', e);
+    throw new Error(e.message || 'Request failed');
   }
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.message || `HTTP ${res.status}`);
-  }
-  return res.json();
 }
 
 export const api = {
@@ -73,8 +101,9 @@ export const api = {
     create: (data: any) => request<any>('/partners', { method: 'POST', body: JSON.stringify(data) }),
     update: (id: string, data: any) => request<any>(`/partners/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     remove: (id: string) => request<void>(`/partners/${id}`, { method: 'DELETE' }),
+    softDelete: (id: string) => request<void>(`/partners/${id}/soft-delete`, { method: 'POST' }),
     getStats: () => request<any>('/partners/stats'),
-    updateStatus: (id: string, status: string) => request<any>(`/partners/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) }),
+    updateStatus: (id: string, status: string) => request<any>(`/partners/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
   },
 
   developers: {
@@ -91,6 +120,7 @@ export const api = {
     create: (data: any) => request<any>('/developers', { method: 'POST', body: JSON.stringify(data) }),
     update: (id: string, data: any) => request<any>(`/developers/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     remove: (id: string) => request<void>(`/developers/${id}`, { method: 'DELETE' }),
+    softDelete: (id: string) => request<void>(`/developers/${id}/soft-delete`, { method: 'POST' }),
     getStats: () => request<any>('/developers/stats'),
     getAllSkills: () => request<any[]>('/developers/skills'),
     addSkill: (id: string, data: any) => request<any>(`/developers/${id}/skills`, { method: 'POST', body: JSON.stringify(data) }),
@@ -112,6 +142,7 @@ export const api = {
     create: (data: any) => request<any>('/tasks', { method: 'POST', body: JSON.stringify(data) }),
     update: (id: string, data: any) => request<any>(`/tasks/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     remove: (id: string) => request<void>(`/tasks/${id}`, { method: 'DELETE' }),
+    softDelete: (id: string) => request<void>(`/tasks/${id}/soft-delete`, { method: 'POST' }),
     getStats: () => request<any>('/tasks/stats'),
     assignDeveloper: (id: string, data: any) => request<any>(`/tasks/${id}/assignments`, { method: 'POST', body: JSON.stringify(data) }),
     updateProgress: (id: string, data: any) => request<any>(`/tasks/${id}/progress`, { method: 'POST', body: JSON.stringify(data) }),
@@ -171,6 +202,7 @@ export const api = {
     createRequirement: (data: any) => request<any>('/improvements/requirements', { method: 'POST', body: JSON.stringify(data) }),
     updateRequirement: (id: string, data: any) => request<any>(`/improvements/requirements/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     removeRequirement: (id: string) => request<void>(`/improvements/requirements/${id}`, { method: 'DELETE' }),
+    softDeleteRequirement: (id: string) => request<void>(`/improvements/requirements/${id}/soft-delete`, { method: 'POST' }),
     getPlan: (id: string) => request<any>(`/improvements/plans/${id}`),
     createPlan: (data: any) => request<any>('/improvements/plans', { method: 'POST', body: JSON.stringify(data) }),
     updatePlan: (id: string, data: any) => request<any>(`/improvements/plans/${id}`, { method: 'PUT', body: JSON.stringify(data) }),

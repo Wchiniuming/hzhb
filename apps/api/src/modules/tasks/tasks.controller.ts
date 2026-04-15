@@ -47,6 +47,12 @@ export class TasksController {
     return this.tasksService.remove(id);
   }
 
+  @Post(':id/soft-delete')
+  @HttpCode(HttpStatus.OK)
+  async softDelete(@Param('id') id: string) {
+    return this.tasksService.softDelete(id);
+  }
+
   @Patch(':id/status')
   async updateStatus(@Param('id') id: string, @Body() body: { status: string }) {
     return this.tasksService.update(id, { status: body.status } as UpdateTaskDto);
